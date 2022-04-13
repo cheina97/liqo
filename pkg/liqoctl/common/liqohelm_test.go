@@ -22,15 +22,18 @@ import (
 var _ = Describe("LiqoHelm", func() {
 	var (
 		lhc                         *LiqoHelmClient
-		expectedRelease             = "liqo"
-		expectedClusterLabels       = map[string]interface{}{"label1": "value1", "label2": "value2", "label3": "value3"}
-		expectedClusterLabelsString = map[string]string{"label1": "value1", "label2": "value2", "label3": "value3"}
+		expectedClusterLabels       map[string]interface{}
+		expectedClusterLabelsString map[string]string
 		clusterLabels               map[string]string
+		err                         error
 	)
+	BeforeEach(func() {
+		expectedClusterLabels = map[string]interface{}{"label1": "value1", "label2": "value2", "label3": "value3"}
+		expectedClusterLabelsString = map[string]string{"label1": "value1", "label2": "value2", "label3": "value3"}
+	})
 	Context("Creating a new LiqoHelmClient", func() {
 		BeforeEach(func() {
 			lhc = &LiqoHelmClient{
-				release: expectedRelease,
 				getValues: func() (map[string]interface{}, error) {
 					return map[string]interface{}{
 						"discovery": map[string]interface{}{
@@ -43,13 +46,11 @@ var _ = Describe("LiqoHelm", func() {
 			}
 		})
 		JustBeforeEach(func() {
-			clusterLabels, _ = lhc.GetClusterLabels()
-		})
-		It("should contain a valid release", func() {
-			Expect(expectedRelease).To(Equal(lhc.release))
+			clusterLabels, err = lhc.GetClusterLabels()
 		})
 		It("should return cluster labels", func() {
 			Expect(expectedClusterLabelsString).To(Equal(clusterLabels))
+			Expect(err).To(BeNil())
 		})
 	})
 })

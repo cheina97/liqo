@@ -19,8 +19,7 @@ import (
 	"strings"
 )
 
-// InfoData implements the InfoInterface interface.
-// holds information about a field using a key/value pair.
+// InfoData holds information about a field using a key/value pair.
 type InfoData struct {
 	key   string
 	value []string
@@ -28,23 +27,23 @@ type InfoData struct {
 
 // StringIndented return the  String() output but with indentation.
 func (id *InfoData) StringIndented(indent int) string {
-	indentation := strings.Repeat("\t", indent+1)
 	if len(id.value) == 1 {
 		return fmt.Sprintf("%s: %s%s%s", id.key, byellow, id.value[0], reset)
 	}
 	msg := fmt.Sprintf("%s:", id.key)
+	indentation := strings.Repeat("\t", indent+1)
 	for _, v := range id.value {
 		msg += fmt.Sprintf("\n%s- %s%s%s", indentation, byellow, v, reset)
 	}
 	return msg
 }
 
-// StringNoColor return the  String() output but without colors.
+// StringNoColor returns the String() output but without colors.
 func (id *InfoData) StringNoColor() string {
 	return fmt.Sprintf("%s: %s", id.key, id.value)
 }
 
-// InfoNode is a node used to link objects implementing InfoInterface in a tree data-structure.
+// InfoNode is a node used to link other InfoNode objects in a tree data-structure.
 type InfoNode struct {
 	title, detail string
 	nextNodes     []*InfoNode

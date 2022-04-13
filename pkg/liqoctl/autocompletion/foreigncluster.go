@@ -16,38 +16,56 @@ package autocompletion
 
 import (
 	"context"
-	"strings"
 
+	"k8s.io/apimachinery/pkg/labels"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	discoveryv1alpha1 "github.com/liqotech/liqo/apis/discovery/v1alpha1"
+	"github.com/liqotech/liqo/apis/discovery/v1alpha1"
 	"github.com/liqotech/liqo/pkg/liqoctl/common"
+	"github.com/liqotech/liqo/pkg/utils/getters"
 )
 
-// GetClusterNames returns the list of foreign cluster names that start with the given string.
-func GetClusterNames(ctx context.Context, startWith string) ([]string, error) {
+// GetClusters returns the list of foreign clusters that are peered with the local cluster.
+func GetClusters(ctx context.Context) (*v1alpha1.ForeignClusterList, error) {
 	restConfig, err := common.GetLiqoctlRestConf()
 	if err != nil {
 		return nil, err
 	}
 
-	k8sClient, err := client.New(restConfig, client.Options{})
+	cl, err := client.New(restConfig, client.Options{})
 	if err != nil {
 		return nil, err
 	}
 
-	var foreignClusters discoveryv1alpha1.ForeignClusterList
-	if err := k8sClient.List(ctx, &foreignClusters); err != nil {
+	foreignClusters, err := getters.GetForeignClustersByLabel(ctx, cl, labels.NewSelector())
+	if err != nil {
 		return nil, err
 	}
+	return foreignClusters, nil
+}
 
-	var clusterNames []string
-	for i := range foreignClusters.Items {
-		fc := &foreignClusters.Items[i]
-		if strings.HasPrefix(fc.Name, startWith) {
-			clusterNames = append(clusterNames, fc.Name)
-		}
+// GetClusterNames returns the list of foreign cluster names that start with the given string.
+func GetClusterNames(ctx context.Context) ([]string, error) {
+	var clustersName []string
+	foreignClusters, err := GetClusters(ctx)
+	if err != nil {
+		return nil, err
 	}
+	for i := range foreignClusters.Items {
+		clustersName = append(clustersName, foreignClusters.Items[i].Spec.ClusterIdentity.ClusterName)
+	}
+	return clustersName, nil
+}
 
-	return clusterNames, nil
+// GetClusterIDs returns the list of foreignClusters cluster IDs that are peered with the local cluster.
+func GetClusterIDs(ctx context.Context) ([]string, error) {
+	var clustersID []string
+	foreignClusters, err := GetClusters(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for i := range foreignClusters.Items {
+		clustersID = append(clustersID, foreignClusters.Items[i].Spec.ClusterIdentity.ClusterID)
+	}
+	return clustersID, nil
 }

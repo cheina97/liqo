@@ -50,7 +50,7 @@ func newRemoveClusterCommand(ctx context.Context) *cobra.Command {
 				return nil, cobra.ShellCompDirectiveDefault
 			}
 
-			names, err := autocompletion.GetClusterNames(cmd.Context(), toComplete)
+			names, err := autocompletion.GetClusterNames(cmd.Context())
 			if err != nil {
 				return nil, cobra.ShellCompDirectiveError
 			}

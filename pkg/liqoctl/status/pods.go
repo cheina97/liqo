@@ -28,7 +28,7 @@ import (
 )
 
 const (
-	podCheckerName = "liqo-control-plane"
+	ctrlPlaneCheckerName = "liqo-control-plane"
 )
 
 var (
@@ -200,7 +200,7 @@ func newPodChecker(namespace string, deployments, daemonSets []string, client k8
 		daemonSets:  daemonSets,
 		client:      client,
 		namespace:   namespace,
-		name:        podCheckerName,
+		name:        ctrlPlaneCheckerName,
 		podsState:   make(podStateMap, 6),
 		errors:      false,
 	}

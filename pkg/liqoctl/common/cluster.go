@@ -46,6 +46,7 @@ import (
 	"github.com/liqotech/liqo/pkg/discovery"
 	"github.com/liqotech/liqo/pkg/liqonet/ipam"
 	tenantnamespace "github.com/liqotech/liqo/pkg/tenantNamespace"
+	"github.com/liqotech/liqo/pkg/utils"
 	"github.com/liqotech/liqo/pkg/utils/authenticationtoken"
 	foreigncluster "github.com/liqotech/liqo/pkg/utils/foreignCluster"
 	liqogetters "github.com/liqotech/liqo/pkg/utils/getters"
@@ -188,17 +189,10 @@ func NewCluster(localK8sClient k8s.Interface, localCtrlRunClient, remoteCtrlRunC
 func (c *Cluster) Init(ctx context.Context) error {
 	// Get cluster identity.
 	s, _ := c.printer.Spinner.Start("retrieving cluster identity")
-	selector, err := metav1.LabelSelectorAsSelector(&liqolabels.ClusterIDConfigMapLabelSelector)
+	clusterIdentity, err := utils.GetClusterIdentityWithControllerClient(ctx, c.locCtrlRunClient, c.namespace)
 	if err != nil {
-		s.Fail(fmt.Sprintf("an error occurred while retrieving cluster identity: %v", err))
 		return err
 	}
-	cm, err := liqogetters.GetConfigMapByLabel(ctx, c.locCtrlRunClient, c.namespace, selector)
-	if err != nil {
-		s.Fail(fmt.Sprintf("an error occurred while retrieving cluster identity: %v", err))
-		return err
-	}
-	clusterID, err := liqogetters.RetrieveClusterIDFromConfigMap(cm)
 	if err != nil {
 		s.Fail(fmt.Sprintf("an error occurred while retrieving cluster identity: %v", err))
 		return err
@@ -207,7 +201,8 @@ func (c *Cluster) Init(ctx context.Context) error {
 
 	// Get network configuration.
 	s, _ = c.printer.Spinner.Start("retrieving network configuration")
-	selector, err = metav1.LabelSelectorAsSelector(&liqolabels.IPAMStorageLabelSelector)
+
+	selector, err := metav1.LabelSelectorAsSelector(&liqolabels.IPAMStorageLabelSelector)
 	if err != nil {
 		s.Fail(fmt.Sprintf("an error occurred while retrieving network configuration: %v", err))
 		return err
@@ -306,7 +301,7 @@ func (c *Cluster) Init(ctx context.Context) error {
 	s.Success("proxy endpoint correctly retrieved")
 
 	// Set configuration
-	c.clusterID = clusterID
+	c.clusterID = &clusterIdentity
 	c.netConfig = netcfg
 
 	c.wgConfig = &WireGuardConfig{

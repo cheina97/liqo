@@ -19,40 +19,35 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/liqotech/liqo/apis/discovery/v1alpha1"
-	netv1 "github.com/liqotech/liqo/apis/net/v1alpha1"
-	"github.com/liqotech/liqo/pkg/utils/getters"
+	netv1alpha1 "github.com/liqotech/liqo/apis/net/v1alpha1"
+	"github.com/liqotech/liqo/pkg/utils"
 )
 
 var _ = Describe("LocalInfo", func() {
 	const (
-		clusterID    = "fake"
-		clusterName  = "fake"
-		namespace    = "liqo"
-		rootTitle    = "Local Cluster Informations"
-		serviceCIDR  = "10.80.0.0/12"
-		externalCIDR = "10.201.0.0/16"
-		podCIDR      = "10.200.0.0/16"
+		clusterID   = "fake"
+		clusterName = "fake"
+		namespace   = "liqo"
+		rootTitle   = "Local Cluster Informations"
 	)
 
 	var (
-		reservedSubnets = []string{"10.202.0.0/16"}
 		clientBuilder   fake.ClientBuilder
 		rootNode        = newRootInfoNode(rootTitle)
 		lic             *LocalInfoChecker
 		ctx             = context.Background()
-		clusterIdentity *v1alpha1.ClusterIdentity
-		networkConfig   *getters.NetworkConfig
+		clusterIdentity v1alpha1.ClusterIdentity
 	)
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		_ = netv1.AddToScheme(scheme.Scheme)
+		_ = netv1alpha1.AddToScheme(scheme.Scheme)
 		clientBuilder = *fake.NewClientBuilder().WithScheme(scheme.Scheme)
 	})
 
@@ -64,7 +59,6 @@ var _ = Describe("LocalInfo", func() {
 			licTest := &LocalInfoChecker{
 				client:            clientBuilder.Build(),
 				namespace:         namespace,
-				errors:            false,
 				collectionErrors:  nil,
 				rootLocalInfoNode: rootNode,
 			}
@@ -73,7 +67,7 @@ var _ = Describe("LocalInfo", func() {
 	})
 	Context("Getting a local cluster identity", func() {
 		BeforeEach(func() {
-			clientBuilder.WithObjects(&v1.ConfigMap{
+			clientBuilder.WithObjects(&corev1.ConfigMap{
 				TypeMeta: metav1.TypeMeta{
 					Kind: "ConfigMap",
 				},
@@ -93,41 +87,11 @@ var _ = Describe("LocalInfo", func() {
 		})
 		JustBeforeEach(func() {
 			clientBuilder.Build()
-			clusterIdentity, _ = getLocalClusterIdentity(ctx, clientBuilder.Build(), namespace)
+			clusterIdentity, _ = utils.GetClusterIdentityWithControllerClient(ctx, clientBuilder.Build(), namespace)
 		})
 		It("should return a valid cluster identity", func() {
 			Expect(clusterIdentity.ClusterID).To(Equal(clusterID))
 			Expect(clusterIdentity.ClusterName).To(Equal(clusterName))
-		})
-	})
-	Context("Getting a network config", func() {
-		BeforeEach(func() {
-			clientBuilder.WithObjects(&netv1.IpamStorage{
-				TypeMeta: metav1.TypeMeta{
-					Kind: "IpamStorage",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"net.liqo.io/ipamstorage": "true",
-					},
-					Namespace: "default",
-				},
-				Spec: netv1.IpamSpec{
-					ReservedSubnets: reservedSubnets,
-					ExternalCIDR:    externalCIDR,
-					PodCIDR:         podCIDR,
-					ServiceCIDR:     serviceCIDR,
-				},
-			})
-		})
-		JustBeforeEach(func() {
-			networkConfig, _ = getLocalNetworkConfig(ctx, clientBuilder.Build())
-		})
-		It("should return a valid network config", func() {
-			Expect(networkConfig.ExternalCIDR).To(Equal(externalCIDR))
-			Expect(networkConfig.PodCIDR).To(Equal(podCIDR))
-			Expect(networkConfig.ReservedSubnets).To(Equal(reservedSubnets))
-			Expect(networkConfig.ServiceCIDR).To(Equal(serviceCIDR))
 		})
 	})
 })

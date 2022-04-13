@@ -18,34 +18,30 @@ import (
 	"context"
 	"fmt"
 
-	"k8s.io/apimachinery/pkg/labels"
 	k8s "k8s.io/client-go/kubernetes"
-	clientControllerRuntime "sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/liqotech/liqo/pkg/utils/getters"
+	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // k8sStatusCollector knows how to interact with k8s cluster.
 type k8sStatusCollector struct {
-	clientCRT clientControllerRuntime.Client
+	clientCRT client.Client
 	params    Args
 	checkers  []Checker
 }
 
 // newK8sStatusCollector returns a new k8sStatusCollector.
-func newK8sStatusCollector(ctx context.Context, client k8s.Interface, clientCRT clientControllerRuntime.Client, params Args) *k8sStatusCollector {
+func newK8sStatusCollector(ctx context.Context, cl k8s.Interface, clCRT client.Client, params *Args) *k8sStatusCollector {
 	checkers := []Checker{
-		newNamespaceChecker(params.Namespace, client),
-		newPodChecker(params.Namespace, liqoDeployments, liqoDaemonSets, client),
-		newLocalInfoChecker(params.Namespace, clientCRT),
+		newNamespaceChecker(params.Namespace, cl),
+		newPodChecker(params.Namespace, liqoDeployments, liqoDaemonSets, cl),
 	}
-	_, err := getters.GetForeignClustersByLabel(ctx, clientCRT, params.Namespace, labels.NewSelector())
-	if err == nil {
-		checkers = append(checkers, newRemoteInfoChecker(params.Namespace, params.ClusterNameFilter, params.ClusterIDFilter, clientCRT))
+	if len(params.ClusterIDFilter) == 0 && len(params.ClusterNameFilter) == 0 {
+		checkers = append(checkers, newLocalInfoChecker(params.Namespace, clCRT))
 	}
+	checkers = append(checkers, newRemoteInfoChecker(params.Namespace, params.ClusterNameFilter, params.ClusterIDFilter, clCRT))
 	return &k8sStatusCollector{
-		clientCRT: clientCRT,
-		params:    params,
+		clientCRT: clCRT,
+		params:    *params,
 		checkers:  checkers,
 	}
 }

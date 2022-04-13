@@ -25,10 +25,10 @@ import (
 
 // Args flags of the status command.
 type Args struct {
+	ShowOnlyLocal     bool
 	Namespace         string
-	ClusterNameFilter *[]string
-	ClusterIDFilter   *[]string
-	CheckerSelector   *[]string
+	ClusterNameFilter []string
+	ClusterIDFilter   []string
 }
 
 // Handler implements the logic of the status command.
@@ -48,7 +48,7 @@ func (a *Args) Handler(ctx context.Context) error {
 		return err
 	}
 
-	collector := newK8sStatusCollector(ctx, clientSet, clientCRT, *a)
+	collector := newK8sStatusCollector(ctx, clientSet, clientCRT, a)
 
 	return collector.collectStatus(ctx)
 }

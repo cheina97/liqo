@@ -25,7 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/liqotech/liqo/apis/discovery/v1alpha1"
+	discoveryv1alpha "github.com/liqotech/liqo/apis/discovery/v1alpha1"
 	netv1alpha1 "github.com/liqotech/liqo/apis/net/v1alpha1"
 )
 
@@ -49,8 +49,8 @@ func GetIPAMStorageByLabel(ctx context.Context, cl client.Client, ns string, lSe
 
 // GetNetworkConfigByLabel it returns a NetworkConfig instance that matches the given label selector.
 func GetNetworkConfigByLabel(ctx context.Context, cl client.Client, ns string, lSelector labels.Selector) (*netv1alpha1.NetworkConfig, error) {
-	list := new(netv1alpha1.NetworkConfigList)
-	if err := cl.List(ctx, list, &client.ListOptions{LabelSelector: lSelector}, client.InNamespace(ns)); err != nil {
+	list, err := GetNetworkConfigsByLabel(ctx, cl, ns, lSelector)
+	if err != nil {
 		return nil, err
 	}
 
@@ -71,19 +71,15 @@ func GetNetworkConfigsByLabel(ctx context.Context, cl client.Client, ns string, 
 	if err := cl.List(ctx, list, &client.ListOptions{LabelSelector: lSelector}, client.InNamespace(ns)); err != nil {
 		return nil, err
 	}
-	if len(list.Items) == 0 {
-		return nil, kerrors.NewNotFound(netv1alpha1.NetworkConfigGroupResource, netv1alpha1.ResourceNetworkConfigs)
-	}
 	return list, nil
 }
 
 // GetTunnelEndpointByLabel it returns a TunnelEndpoint instance that matches the given label selector.
 func GetTunnelEndpointByLabel(ctx context.Context, cl client.Client, ns string, lSelector labels.Selector) (*netv1alpha1.TunnelEndpoint, error) {
-	list := new(netv1alpha1.TunnelEndpointList)
-	if err := cl.List(ctx, list, &client.ListOptions{LabelSelector: lSelector}, client.InNamespace(ns)); err != nil {
+	list, err := GetTunnelEndpointsByLabel(ctx, cl, ns, lSelector)
+	if err != nil {
 		return nil, err
 	}
-
 	switch len(list.Items) {
 	case 0:
 		return nil, kerrors.NewNotFound(netv1alpha1.TunnelEndpointGroupResource, netv1alpha1.ResourceTunnelEndpoints)
@@ -101,20 +97,17 @@ func GetTunnelEndpointsByLabel(ctx context.Context, cl client.Client, ns string,
 	if err := cl.List(ctx, list, &client.ListOptions{LabelSelector: lSelector}, client.InNamespace(ns)); err != nil {
 		return nil, err
 	}
-	if len(list.Items) == 0 {
-		return nil, kerrors.NewNotFound(netv1alpha1.TunnelEndpointGroupResource, netv1alpha1.ResourceTunnelEndpoints)
-	}
 	return list, nil
 }
 
 // GetForeignClustersByLabel it returns a ForeignClusters list that matches the given label selector.
-func GetForeignClustersByLabel(ctx context.Context, cl client.Client, ns string, lSelector labels.Selector) (*v1alpha1.ForeignClusterList, error) {
-	list := new(v1alpha1.ForeignClusterList)
-	if err := cl.List(ctx, list, &client.ListOptions{LabelSelector: lSelector}, client.InNamespace(ns)); err != nil {
+func GetForeignClustersByLabel(ctx context.Context, cl client.Client, lSelector labels.Selector) (*discoveryv1alpha.ForeignClusterList, error) {
+	list := new(discoveryv1alpha.ForeignClusterList)
+	if err := cl.List(ctx, list, &client.ListOptions{LabelSelector: lSelector}); err != nil {
 		return nil, err
 	}
 	if len(list.Items) == 0 {
-		return nil, kerrors.NewNotFound(v1alpha1.ForeignClusterGroupResource, v1alpha1.ForeignClusterResource)
+		return nil, kerrors.NewNotFound(discoveryv1alpha.ForeignClusterGroupResource, discoveryv1alpha.ForeignClusterResource)
 	}
 	return list, nil
 }
@@ -156,26 +149,6 @@ func GetSecretByLabel(ctx context.Context, cl client.Client, ns string, lSelecto
 	default:
 		return nil, fmt.Errorf("multiple resources of type {%s} found for label selector {%s} in namespace {%s},"+
 			" when only one was expected", scrGR.String(), lSelector.String(), ns)
-	}
-}
-
-// GetConfigMapByLabel it returns a configmap instance that matches the given label selector.
-func GetConfigMapByLabel(ctx context.Context, cl client.Client, ns string, lSelector labels.Selector) (*corev1.ConfigMap, error) {
-	list := new(corev1.ConfigMapList)
-	if err := cl.List(ctx, list, &client.ListOptions{LabelSelector: lSelector}, client.InNamespace(ns)); err != nil {
-		return nil, err
-	}
-	cmRN := string(corev1.ResourceConfigMaps)
-	cmGR := corev1.Resource(cmRN)
-
-	switch len(list.Items) {
-	case 0:
-		return nil, kerrors.NewNotFound(cmGR, cmRN)
-	case 1:
-		return &list.Items[0], nil
-	default:
-		return nil, fmt.Errorf("multiple resources of type {%s} found for label selector {%s} in namespace {%s},"+
-			" when only one was expected", cmGR.String(), lSelector.String(), ns)
 	}
 }
 

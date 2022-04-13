@@ -26,22 +26,21 @@ import (
 
 // LiqoHelmClient is a wrapper around the Helm client.
 type LiqoHelmClient struct {
-	release   string
 	getValues func() (map[string]interface{}, error)
 }
 
 // NewLiqoHelmClient creates a new instance of LiqoHelmClient.
 func NewLiqoHelmClient() (*LiqoHelmClient, error) {
-	lhc := &LiqoHelmClient{release: installutils.LiqoReleaseName}
-	settings := cli.New()
 	clientConfig := &action.Configuration{}
-	helmdriver := os.Getenv("HELM_DRIVER")
-	err := clientConfig.Init(settings.RESTClientGetter(), installutils.LiqoNamespace, helmdriver, log.Printf)
+	err := clientConfig.Init(cli.New().RESTClientGetter(), installutils.LiqoNamespace, os.Getenv("HELM_DRIVER"), log.Printf)
 	if err != nil {
 		return nil, err
 	}
-	lhc.getValues = func() (map[string]interface{}, error) { return action.NewGetValues(clientConfig).Run(lhc.release) }
-	return lhc, nil
+	return &LiqoHelmClient{
+		getValues: func() (map[string]interface{}, error) {
+			return action.NewGetValues(clientConfig).Run(installutils.LiqoReleaseName)
+		},
+	}, nil
 }
 
 // GetClusterLabels returns a map of cluster labels.

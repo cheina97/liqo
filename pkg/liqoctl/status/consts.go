@@ -33,6 +33,21 @@ $ liqoctl status --namespace ns-where-Liqo-is-running
 	// Namespace contains the name of namespace flag.
 	Namespace = "namespace"
 
+	// ClusterFilters contains the name of the cluster filters flag set.
+	ClusterFilters = "clusterFilters"
+
+	// ClusterNameFilter contains the name of the cluster name filter flag.
+	ClusterNameFilter = "cluster-name"
+
+	// ClusterIDFilter contains the name of the cluster ID filter flag.
+	ClusterIDFilter = "cluster-id"
+
+	// ShowOnlyLocal contains the name of the show only local flag.
+	ShowOnlyLocal = "show-only-local"
+
+	// NotRemappedMsg contains the message printed when a cluster is not remapped.
+	NotRemappedMsg = "Remapping not necessary (no conflict)"
+
 	redCross  = "\u274c"
 	checkMark = "\u2714"
 

@@ -20,45 +20,49 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	netv1 "github.com/liqotech/liqo/apis/net/v1alpha1"
+	discv1alpha1 "github.com/liqotech/liqo/apis/discovery/v1alpha1"
+	netv1alpha1 "github.com/liqotech/liqo/apis/net/v1alpha1"
 )
 
 var _ = Describe("Remoteinfo", func() {
 	const (
-		rootTitle    = "Remote Clusters Information"
-		namespace    = "liqo"
-		clusterID1   = "e126183a-5445-404f-8802-fdd5ed64b4ec"
-		clusterName1 = "cluster1"
-		clusterID2   = "d945afca-3a15-45ef-a472-41f1803592d1"
-		clusterName2 = "cluster2"
+		rootTitle               = "Remote Clusters Information"
+		namespace               = "liqo"
+		clusterID1              = "e126183a-5445-404f-8802-fdd5ed64b4ec"
+		clusterName1            = "cluster1"
+		clusterID2              = "d945afca-3a15-45ef-a472-41f1803592d1"
+		clusterName2            = "cluster2"
+		tenantCluster2Namespace = "tenant-cluster2-namespace"
 	)
 	var (
-		clientBuilder fake.ClientBuilder
-		rootNode      = newRootInfoNode(rootTitle)
+		rootNode      InfoNode
 		ric           *RemoteInfoChecker
+		clientBuilder fake.ClientBuilder
 	)
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		_ = netv1.AddToScheme(scheme.Scheme)
+		_ = netv1alpha1.AddToScheme(scheme.Scheme)
 		clientBuilder = *fake.NewClientBuilder().WithScheme(scheme.Scheme)
+		rootNode = newRootInfoNode(rootTitle)
 	})
 
 	Context("Creating a new remoteInfoChecker", func() {
 		JustBeforeEach(func() {
-			ric = newRemoteInfoChecker(namespace, &[]string{}, &[]string{}, clientBuilder.Build())
+			ric = newRemoteInfoChecker(namespace, []string{}, []string{}, clientBuilder.Build())
+			_ = ric.Collect(ctx)
 		})
 		It("should return a valid remoteInfoChecker", func() {
 			ricTest := &RemoteInfoChecker{
 				client:             clientBuilder.Build(),
 				namespace:          namespace,
-				clusterNameFilter:  &[]string{},
-				clusterIDFilter:    &[]string{},
+				clusterNameFilter:  []string{},
+				clusterIDFilter:    []string{},
 				errors:             false,
 				collectionErrors:   nil,
 				rootRemoteInfoNode: rootNode,
@@ -70,7 +74,7 @@ var _ = Describe("Remoteinfo", func() {
 	Context("Checking if a cluster ID or a cluster name are included between filters", func() {
 		Context("Checking cluster ID", func() {
 			BeforeEach(func() {
-				ric.clusterIDFilter = &[]string{"cluster-id-1", "cluster-id-2"}
+				ric.clusterIDFilter = []string{"cluster-id-1", "cluster-id-2"}
 			})
 			When("Cluster ID is included", func() {
 				It("should return true", func() {
@@ -86,7 +90,7 @@ var _ = Describe("Remoteinfo", func() {
 		})
 		Context("Checking cluster name", func() {
 			BeforeEach(func() {
-				ric.clusterNameFilter = &[]string{"cluster-name-1", "cluster-name-2"}
+				ric.clusterNameFilter = []string{"cluster-name-1", "cluster-name-2"}
 			})
 			When("Cluster name is included", func() {
 				It("should return true", func() {
@@ -104,13 +108,10 @@ var _ = Describe("Remoteinfo", func() {
 	})
 
 	Context("Getting Collect() result", func() {
-		var infoNode InfoNode
+		var expected InfoNode
 		BeforeEach(func() {
 			clientBuilder.WithObjects(
-				&v1.ConfigMap{
-					TypeMeta: metav1.TypeMeta{
-						Kind: "ConfigMap",
-					},
+				&corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
 						Labels: map[string]string{
 							"app.kubernetes.io/name": "clusterid-configmap",
@@ -124,10 +125,20 @@ var _ = Describe("Remoteinfo", func() {
 					},
 					BinaryData: map[string][]byte{},
 				},
-				&netv1.NetworkConfig{
-					TypeMeta: metav1.TypeMeta{
-						Kind: "NetworkConfig",
+				&discv1alpha1.ForeignCluster{
+					Spec: discv1alpha1.ForeignClusterSpec{
+						ClusterIdentity: discv1alpha1.ClusterIdentity{
+							ClusterID:   clusterID2,
+							ClusterName: clusterName2,
+						},
 					},
+					Status: discv1alpha1.ForeignClusterStatus{
+						TenantNamespace: discv1alpha1.TenantNamespaceType{
+							Local: tenantCluster2Namespace,
+						},
+					},
+				},
+				&netv1alpha1.NetworkConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: clusterName1,
 						Labels: map[string]string{
@@ -141,19 +152,16 @@ var _ = Describe("Remoteinfo", func() {
 							},
 						},
 					},
-					Spec: netv1.NetworkConfigSpec{
+					Spec: netv1alpha1.NetworkConfigSpec{
 						PodCIDR:      "10.200.0.0/16",
 						ExternalCIDR: "10.201.0.0/16",
 					},
-					Status: netv1.NetworkConfigStatus{
+					Status: netv1alpha1.NetworkConfigStatus{
 						PodCIDRNAT:      "10.202.0.0/16",
 						ExternalCIDRNAT: "10.203.0.0/16",
 					},
 				},
-				&netv1.NetworkConfig{
-					TypeMeta: metav1.TypeMeta{
-						Kind: "NetworkConfig",
-					},
+				&netv1alpha1.NetworkConfig{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: clusterName2,
 						Labels: map[string]string{
@@ -166,24 +174,24 @@ var _ = Describe("Remoteinfo", func() {
 							},
 						},
 					},
-					Spec: netv1.NetworkConfigSpec{
+					Spec: netv1alpha1.NetworkConfigSpec{
 						PodCIDR:      "10.200.0.0/16",
 						ExternalCIDR: "10.201.0.0/16",
 					},
-					Status: netv1.NetworkConfigStatus{
+					Status: netv1alpha1.NetworkConfigStatus{
 						PodCIDRNAT:      "10.202.0.0/16",
 						ExternalCIDRNAT: "10.203.0.0/16",
 					},
 				},
-				&netv1.TunnelEndpoint{
+				&netv1alpha1.TunnelEndpoint{
 					ObjectMeta: metav1.ObjectMeta{
 						Labels: map[string]string{
 							"clusterID": clusterID2,
 						},
 					},
-					Status: netv1.TunnelEndpointStatus{
+					Status: netv1alpha1.TunnelEndpointStatus{
 						GatewayIP: "172.18.0.2",
-						Connection: netv1.Connection{
+						Connection: netv1alpha1.Connection{
 							PeerConfiguration: map[string]string{
 								"endpointIP": "172.18.0.3",
 							},
@@ -191,9 +199,9 @@ var _ = Describe("Remoteinfo", func() {
 					},
 				},
 			)
-			infoNode = InfoNode{}
-			infoNode.title = rootTitle
-			clusterSection := infoNode.addSectionToNode(clusterName2, "")
+			expected = InfoNode{}
+			expected.title = rootTitle
+			clusterSection := expected.addSectionToNode(clusterName2, "")
 			local := clusterSection.addSectionToNode("Local Network Configuration", "")
 			remote := clusterSection.addSectionToNode("Remote Network Configuration", "")
 			originalLocal := local.addSectionToNode("Original Network Configuration", "Spec")
@@ -219,29 +227,26 @@ var _ = Describe("Remoteinfo", func() {
 
 		When("There aren't filters", func() {
 			JustBeforeEach(func() {
-				ric = newRemoteInfoChecker(namespace, &[]string{}, &[]string{}, clientBuilder.Build())
+				ric = newRemoteInfoChecker(namespace, []string{}, []string{}, clientBuilder.Build())
 			})
 			It("should return a valid tree", func() {
-				_ = ric.Collect(ctx)
-				Expect(ric.rootRemoteInfoNode).To(Equal(infoNode))
+				Expect(ric.rootRemoteInfoNode).To(Equal(expected))
 			})
 		})
 		When("There is a filter on cluster ID", func() {
 			When("Filtered ID is contained in filtered ID list", func() {
 				JustBeforeEach(func() {
-					ric = newRemoteInfoChecker(namespace, &[]string{}, &[]string{clusterID2}, clientBuilder.Build())
+					ric = newRemoteInfoChecker(namespace, []string{}, []string{clusterID2}, clientBuilder.Build())
 				})
 				It("should return a valid tree", func() {
-					_ = ric.Collect(ctx)
-					Expect(ric.rootRemoteInfoNode).To(Equal(infoNode))
+					Expect(ric.rootRemoteInfoNode).To(Equal(expected))
 				})
 			})
 			When("Filtered ID is not contained in filtered ID list", func() {
 				JustBeforeEach(func() {
-					ric = newRemoteInfoChecker(namespace, &[]string{}, &[]string{"invalid filter"}, clientBuilder.Build())
+					ric = newRemoteInfoChecker(namespace, []string{}, []string{"invalid filter"}, clientBuilder.Build())
 				})
 				It("should return a void tree", func() {
-					_ = ric.Collect(ctx)
 					Expect(ric.rootRemoteInfoNode.nextNodes).To(BeEmpty())
 				})
 			})
@@ -250,19 +255,17 @@ var _ = Describe("Remoteinfo", func() {
 		When("There is a filter on cluster name", func() {
 			When("Filtered name is contained in filtered name list", func() {
 				JustBeforeEach(func() {
-					ric = newRemoteInfoChecker(namespace, &[]string{clusterName2}, &[]string{}, clientBuilder.Build())
+					ric = newRemoteInfoChecker(namespace, []string{clusterName2}, []string{}, clientBuilder.Build())
 				})
 				It("should return a valid tree", func() {
-					_ = ric.Collect(ctx)
-					Expect(ric.rootRemoteInfoNode).To(Equal(infoNode))
+					Expect(ric.rootRemoteInfoNode).To(Equal(expected))
 				})
 			})
 			When("Filtered name is not contained in filtered name list", func() {
 				JustBeforeEach(func() {
-					ric = newRemoteInfoChecker(namespace, &[]string{"invalid filter"}, &[]string{}, clientBuilder.Build())
+					ric = newRemoteInfoChecker(namespace, []string{"invalid filter"}, []string{}, clientBuilder.Build())
 				})
 				It("should return a void tree", func() {
-					_ = ric.Collect(ctx)
 					Expect(ric.rootRemoteInfoNode.nextNodes).To(BeEmpty())
 				})
 			})

@@ -47,6 +47,7 @@ var _ = Describe("Info", func() {
 		})
 		It("should return a valid InfoNode tree", func() {
 			Expect(infoNode.title).To(Equal("root"))
+			Expect(len(infoNode.nextNodes)).To(Equal(2))
 			Expect(infoNode.nextNodes[0].title).To(Equal("section1"))
 			Expect(infoNode.nextNodes[0].detail).To(Equal("detail1"))
 			Expect(infoNode.nextNodes[0].nextNodes[0].title).To(Equal("section1-1"))
@@ -66,6 +67,7 @@ var _ = Describe("Info", func() {
 		})
 		It("should return a valid InfoNode tree", func() {
 			Expect(infoNode.title).To(Equal("root"))
+			Expect(len(infoNode.data)).To(Equal(3))
 			Expect(infoNode.data[0].key).To(Equal("key1"))
 			Expect(infoNode.data[0].value[0]).To(Equal("value1"))
 			Expect(infoNode.data[1].key).To(Equal("key2"))
@@ -89,13 +91,17 @@ var _ = Describe("Info", func() {
 		})
 		It("should return a valid InfoNode tree", func() {
 			Expect(infoNode.title).To(Equal("root"))
+			Expect(len(infoNode.nextNodes)).To(Equal(2))
 			Expect(infoNode.nextNodes[0].title).To(Equal("section1"))
 			Expect(infoNode.nextNodes[1].title).To(Equal("section2"))
 			Expect(infoNode.nextNodes[1].nextNodes[0].title).To(Equal("section3"))
 
+			Expect(len(infoNode.nextNodes[0].data)).To(Equal(3))
 			Expect(infoNode.nextNodes[0].data[0].value[0]).To(Equal("value1"))
 			Expect(infoNode.nextNodes[0].data[1].value[0]).To(Equal("value2"))
 			Expect(infoNode.nextNodes[0].data[2].value[0]).To(Equal("value3"))
+
+			Expect(len(infoNode.nextNodes[1].nextNodes[0].data)).To(Equal(3))
 			Expect(infoNode.nextNodes[1].nextNodes[0].data[0].value[0]).To(Equal("value1"))
 			Expect(infoNode.nextNodes[1].nextNodes[0].data[1].value[0]).To(Equal("value2"))
 			Expect(infoNode.nextNodes[1].nextNodes[0].data[2].value[0]).To(Equal("value3"))

@@ -228,7 +228,7 @@ var _ = Describe("Pods", func() {
 				deployments:      deployments,
 				daemonSets:       daemonSets,
 				namespace:        namespace,
-				name:             podCheckerName,
+				name:             ctrlPlaneCheckerName,
 				podsState:        make(podStateMap, 2),
 				errors:           false,
 				collectionErrors: nil,

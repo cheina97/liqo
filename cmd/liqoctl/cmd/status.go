@@ -16,28 +16,53 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/spf13/cobra"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
+	"github.com/liqotech/liqo/pkg/liqoctl/autocompletion"
 	"github.com/liqotech/liqo/pkg/liqoctl/status"
 )
 
 func newStatusCommand(ctx context.Context) *cobra.Command {
 	var params = status.Args{}
-
 	cmd := &cobra.Command{
 		Use:           status.UseCommand,
 		Short:         status.ShortHelp,
 		Long:          status.LongHelp,
-		SilenceErrors: true,
+		SilenceErrors: false,
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			if len(params.ClusterIDFilter) != 0 && len(params.ClusterNameFilter) != 0 {
+				return fmt.Errorf("cannot specify both --cluster-id and --cluster-name")
+			}
+			return nil
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return params.Handler(ctx)
 		},
 	}
 	cmd.Flags().StringVarP(&params.Namespace, status.Namespace, "n", "liqo", "Namespace Liqo is running in")
-	params.ClusterNameFilter = cmd.Flags().StringSliceP("cluster-name", "N", []string{},
-		"show info about clusters specified by name, you can specify more than one cluster separating names with ',' character")
-	params.ClusterIDFilter = cmd.Flags().StringSliceP("cluster-id", "I", []string{},
-		"show info about clusters specified by ID, you can specify more than one cluster separating IDs with ',' character")
+	cmd.Flags().BoolVarP(&params.ShowOnlyLocal, status.ShowOnlyLocal, "l", false, "Shows only local cluster information")
+	cmd.Flags().StringSliceVarP(&params.ClusterNameFilter, status.ClusterNameFilter, "N", []string{},
+		"show info about one or more clusters specified by name, separated by commas.")
+	cmd.Flags().StringSliceVarP(&params.ClusterIDFilter, status.ClusterIDFilter, "I", []string{},
+		"show info about one or more clusters specified by ID, separated by commas.")
+	utilruntime.Must(cmd.RegisterFlagCompletionFunc(status.ClusterNameFilter,
+		func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			names, err := autocompletion.GetClusterNames(cmd.Context())
+			if err != nil {
+				return nil, cobra.ShellCompDirectiveError
+			}
+			return names, cobra.ShellCompDirectiveNoFileComp
+		}))
+	utilruntime.Must(cmd.RegisterFlagCompletionFunc(status.ClusterIDFilter,
+		func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			ids, err := autocompletion.GetClusterIDs(cmd.Context())
+			if err != nil {
+				return nil, cobra.ShellCompDirectiveError
+			}
+			return ids, cobra.ShellCompDirectiveNoFileComp
+		}))
 	return cmd
 }
