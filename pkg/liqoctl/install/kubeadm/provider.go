@@ -24,6 +24,7 @@ import (
 
 	"github.com/liqotech/liqo/pkg/liqoctl/install"
 	"github.com/liqotech/liqo/pkg/liqoctl/util"
+	"github.com/liqotech/liqo/pkg/utils/getters"
 )
 
 var _ install.Provider = (*Options)(nil)
@@ -66,9 +67,16 @@ func (o *Options) Initialize(ctx context.Context) error {
 	)
 
 	// Retrieve the Pod CIDR and Service CIDR based on the controller-manager configuration
-	cm, err := o.KubeClient.CoreV1().Pods(kubeSystemNamespaceName).List(ctx, metav1.ListOptions{
-		LabelSelector: labels.Set(kubeControllerManagerLabels).AsSelector().String(),
-	})
+	fmt.Println("Mi sono piantato nel solito posto")
+	var err error
+	var lSelector labels.Selector
+	if lSelector, err = metav1.LabelSelectorAsSelector(&metav1.LabelSelector{
+		MatchLabels: kubeControllerManagerLabels,
+	}); err != nil {
+		return err
+	}
+	cm, err := getters.ListPodByLabel(ctx, o.CRClient, kubeSystemNamespaceName, lSelector)
+	fmt.Println("Sono uscito dal solito posto")
 	if err != nil {
 		return err
 	}

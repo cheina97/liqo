@@ -216,11 +216,12 @@ E2E_TARGETS = e2e-dir \
 # export TEMPLATE_DIR=${PWD}/test/e2e/pipeline/infra/kind
 # export NAMESPACE=liqo
 # export KUBECONFIGDIR=${TMPDIR}/kubeconfigs
-# export LIQO_VERSION=3e060bc36ffb1a88b988a7e948de2b045ba2e8ce
+# export LIQO_VERSION=0a67355b74f5c421b0ba05e8407b87c88cf829ec
 # export INFRA=kind
 # export LIQOCTL=${BINDIR}/liqoctl
+# export KIND=${BINDIR}/kind
 # export POD_CIDR_OVERLAPPING=false
-# export TEMPLATE_FILE=cluster-templates.yaml.tmpl
+# export CLUSTER_TEMPLATE_FILE=cluster-templates.yaml.tmpl
 
 # Run e2e tests
 e2e: $(E2E_TARGETS)

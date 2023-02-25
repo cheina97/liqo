@@ -1,0 +1,204 @@
+apiServer:
+    address: ""
+    trustedCA: false
+auth:
+    config:
+        addressOverride: ""
+        enableAuthentication: true
+        portOverride: ""
+    imageName: ghcr.io/liqotech/auth-service
+    ingress:
+        annotations: {}
+        class: ""
+        enable: false
+        host: ""
+    initContainer:
+        imageName: ghcr.io/liqotech/cert-creator
+    pod:
+        annotations: {}
+        extraArgs: []
+        labels: {}
+        resources:
+            limits: {}
+            requests: {}
+    service:
+        annotations: {}
+        type: NodePort
+    tls: true
+awsConfig:
+    accessKeyId: ""
+    clusterName: ""
+    region: ""
+    secretAccessKey: ""
+controllerManager:
+    config:
+        enableNodeFailureController: false
+        enableResourceEnforcement: false
+        offerUpdateThresholdPercentage: ""
+        resourcePluginAddress: ""
+        resourceSharingPercentage: 90
+    imageName: ghcr.io/liqotech/liqo-controller-manager
+    pod:
+        annotations: {}
+        extraArgs: []
+        labels: {}
+        resources:
+            limits: {}
+            requests: {}
+    replicas: 1
+crdReplicator:
+    imageName: ghcr.io/liqotech/crd-replicator
+    pod:
+        annotations: {}
+        extraArgs: []
+        labels: {}
+        resources:
+            limits: {}
+            requests: {}
+discovery:
+    config:
+        autojoin: true
+        clusterIDOverride: ""
+        clusterLabels:
+            liqo.io/provider: kind
+        clusterName: wandering-rain
+        enableAdvertisement: false
+        enableDiscovery: false
+        incomingPeeringEnabled: true
+        ttl: 90
+    imageName: ghcr.io/liqotech/discovery
+    pod:
+        annotations: {}
+        extraArgs: []
+        labels: {}
+        resources:
+            limits: {}
+            requests: {}
+fullnameOverride: ""
+gateway:
+    config:
+        addressOverride: ""
+        listeningPort: 5871
+        portOverride: ""
+        wireguardImplementation: kernel
+    imageName: ghcr.io/liqotech/liqonet
+    metrics:
+        enabled: false
+        port: 5872
+        serviceMonitor:
+            enabled: false
+            interval: ""
+            scrapeTimeout: ""
+    pod:
+        annotations: {}
+        extraArgs: []
+        labels: {}
+        resources:
+            limits: {}
+            requests: {}
+    replicas: 1
+    service:
+        annotations: {}
+        type: NodePort
+metricAgent:
+    enable: true
+    imageName: ghcr.io/liqotech/metric-agent
+    initContainer:
+        imageName: ghcr.io/liqotech/cert-creator
+    pod:
+        annotations: {}
+        extraArgs: []
+        labels: {}
+        resources:
+            limits: {}
+            requests: {}
+nameOverride: ""
+networkConfig:
+    mtu: 1340
+networkManager:
+    config:
+        additionalPools: []
+        podCIDR: 10.244.0.0/16
+        reservedSubnets: []
+        serviceCIDR: 10.96.0.0/16
+    imageName: ghcr.io/liqotech/liqonet
+    pod:
+        annotations: {}
+        extraArgs: []
+        labels: {}
+        resources:
+            limits: {}
+            requests: {}
+openshiftConfig:
+    enable: false
+    virtualKubeletSCCs:
+        - anyuid
+proxy:
+    config:
+        listeningPort: 8118
+    imageName: envoyproxy/envoy:v1.21.0
+    pod:
+        annotations: {}
+        extraArgs: []
+        labels: {}
+        resources:
+            limits: {}
+            requests: {}
+    service:
+        annotations: {}
+        type: ClusterIP
+pullPolicy: IfNotPresent
+route:
+    imageName: ghcr.io/liqotech/liqonet
+    pod:
+        annotations: {}
+        extraArgs: []
+        labels: {}
+        resources:
+            limits: {}
+            requests: {}
+storage:
+    enable: true
+    realStorageClassName: ""
+    storageNamespace: liqo-storage
+    virtualStorageClassName: liqo
+tag: v0.7.1
+telemetry:
+    config:
+        schedule: ""
+    enable: true
+    imageName: ghcr.io/liqotech/telemetry
+    pod:
+        annotations: {}
+        extraArgs: []
+        labels: {}
+        resources:
+            limits: {}
+            requests: {}
+uninstaller:
+    imageName: ghcr.io/liqotech/uninstaller
+    pod:
+        annotations: {}
+        extraArgs: []
+        labels: {}
+        resources:
+            limits: {}
+            requests: {}
+virtualKubelet:
+    extra:
+        annotations: {}
+        args: []
+        labels: {}
+        resources:
+            limits: {}
+            requests: {}
+    imageName: ghcr.io/liqotech/virtual-kubelet
+    virtualNode:
+        extra:
+            annotations: {}
+            labels: {}
+webhook:
+    failurePolicy: Fail
+    patch:
+        image: k8s.gcr.io/ingress-nginx/kube-webhook-certgen:v1.1.1
+    port: 9443

@@ -180,6 +180,14 @@ func GetPodByLabel(ctx context.Context, cl client.Client, ns string, lSelector l
 	}
 }
 
+func ListPodByLabel(ctx context.Context, cl client.Client, ns string, lSelector labels.Selector) (*corev1.PodList, error) {
+	list := new(corev1.PodList)
+	if err := cl.List(ctx, list, &client.ListOptions{LabelSelector: lSelector}, client.InNamespace(ns)); err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
 // GetNodeByClusterID returns the node instance that matches the given cluster id.
 func GetNodeByClusterID(ctx context.Context, cl client.Client, clusterID *discoveryv1alpha1.ClusterIdentity) (*corev1.Node, error) {
 	list := new(corev1.NodeList)

@@ -26,7 +26,6 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/klog/v2"
 	"k8s.io/kubectl/pkg/cmd/util"
 
@@ -87,10 +86,10 @@ func NewRootCommand(ctx context.Context) *cobra.Command {
 	klogFlagset := flag.NewFlagSet("klog", flag.PanicOnError)
 	klog.InitFlags(klogFlagset)
 	// These settings is required to silence the Helm library messages.
-	utilruntime.Must(klogFlagset.Set("stderrthreshold", "FATAL"))
-	klog.LogToStderr(false)
-	buffer := &bytes.Buffer{}
-	klog.SetOutput(buffer)
+	//utilruntime.Must(klogFlagset.Set("stderrthreshold", "FATAL"))
+	//klog.LogToStderr(false)
+	//buffer := &bytes.Buffer{}
+	//klog.SetOutput(buffer)
 
 	// In case liqoctl is used as a kubectl plugin, let's set a custom usage template with kubectl
 	// hardcoded in it, since Cobra does not allow to specify a two word command (i.e., "kubectl liqo")

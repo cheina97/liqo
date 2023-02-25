@@ -113,7 +113,7 @@ func (f *Factory) HelmClientOrError() (helm.Client, error) {
 		RestConfig: f.RESTConfig,
 		Options: &helm.Options{
 			Namespace: f.LiqoNamespace,
-			Debug:     verbose,
+			Debug:     true,
 			DebugLog:  f.Printer.Verbosef,
 		},
 	}

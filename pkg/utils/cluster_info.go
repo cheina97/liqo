@@ -37,9 +37,11 @@ import (
 func GetClusterIdentityWithNativeClient(ctx context.Context,
 	nativeClient kubernetes.Interface, namespace string) (discoveryv1alpha1.ClusterIdentity, error) {
 	cmClient := nativeClient.CoreV1().ConfigMaps(namespace)
+	fmt.Println("Altro posto dove si pianta")
 	configMapList, err := cmClient.List(ctx, metav1.ListOptions{
 		LabelSelector: consts.ClusterIDConfigMapSelector().String(),
 	})
+	fmt.Println("Non si è piantato")
 	if err != nil {
 		return discoveryv1alpha1.ClusterIdentity{}, err
 	}

@@ -193,24 +193,35 @@ func (o *Options) Run(ctx context.Context, provider Provider) error {
 
 func (o *Options) initialize(ctx context.Context, provider Provider) error {
 	var err error
+	fmt.Println("Creating helm client...")
 	helmClient := o.HelmClient()
+	fmt.Println("Helm client created")
 
+	fmt.Println("Sto entrando nello switch")
 	switch {
 	// In case a local chart path is specified, use that.
 	case o.ChartPath != "":
+		fmt.Println("Entrato nel primo switch")
 		// disable telemetry for local charts (development)
 		o.DisableTelemetry = true
 
-	// In case the specified version is valid, add the chart through the client.
+		// In case the specified version is valid, add the chart through the client.
+		fmt.Println("Checking if version is valid...")
+		fmt.Println("Uscito dal primo switch")
 	case o.isRelease():
+		fmt.Println("Entrato nel secondo switch")
 		o.ChartPath = liqoChartFullName
 		chartRepo := repo.Entry{URL: liqoRepo, Name: liqoChartName}
+		fmt.Println("Adding chart repo...")
 		if err = helmClient.AddOrUpdateChartRepo(chartRepo); err != nil {
 			return err
 		}
+		fmt.Println("Chart repo added")
+		fmt.Println("Uscito dal secondo switch")
 
 	// Otherwise, clone the repository and configure it as a local chart path.
 	default:
+		fmt.Println("Entrato nel terzo switch")
 		o.Printer.Warning.Printfln("Non-released version selected. Downloading repository from %q...", o.RepoURL)
 		if err = o.cloneRepository(ctx); err != nil {
 			if strings.Contains(err.Error(), "object not found") {
@@ -219,7 +230,8 @@ func (o *Options) initialize(ctx context.Context, provider Provider) error {
 
 			return err
 		}
-
+		fmt.Println("Repository cloned")
+		fmt.Println("Uscito dal terzo switch")
 		// disable telemetry if the version is not a release
 		o.DisableTelemetry = true
 	}
@@ -236,6 +248,7 @@ func (o *Options) initialize(ctx context.Context, provider Provider) error {
 		o.Version = chart.Metadata.Version
 	}
 
+	fmt.Println("Getting cluster name...")
 	// Retrieve the cluster name used for previous installations, in case it was not specified.
 	if o.ClusterName == "" {
 		o.ClusterName, err = utils.GetClusterName(ctx, o.KubeClient, o.LiqoNamespace)
@@ -243,6 +256,7 @@ func (o *Options) initialize(ctx context.Context, provider Provider) error {
 			return err
 		}
 	}
+	fmt.Println("Cluster name retrieved")
 
 	// Add a label stating the provider name.
 	if provider.Name() != "" {

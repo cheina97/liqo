@@ -29,31 +29,30 @@ error() {
 trap 'error "${BASH_SOURCE}" "${LINENO}"' ERR
 
 CLUSTER_NAME=cluster
+K3D="${BINDIR}/k3d"
 export DISABLE_KINDNET=false
 
-if [[ ${CNI} != "kindnet" ]]; then
-	export DISABLE_KINDNET=true
-fi
+#if [[ ${CNI} != "flannel" ]]; then
+#	export DISABLE_FLANNEL=true
+#fi
 
 export SERVICE_CIDR=10.100.0.0/16
 export POD_CIDR=10.200.0.0/16
 export POD_CIDR_OVERLAPPING=${POD_CIDR_OVERLAPPING:-"false"}
 
-CLUSTER_TEMPLATE_FILE=${CLUSTER_TEMPLATE_FILE:-cluster-templates.yaml.tmpl}
-
-PIDS=()
 for i in $(seq 1 "${CLUSTER_NUMBER}");
 do
 	if [[ ${POD_CIDR_OVERLAPPING} != "true" ]]; then
 		# this should avoid the ipam to reserve a pod CIDR of another cluster as local external CIDR causing remapping
 		export POD_CIDR="10.$((i * 10)).0.0/16"
 	fi
-	envsubst < "${TEMPLATE_DIR}/templates/$CLUSTER_TEMPLATE_FILE" > "${TMPDIR}/liqo-cluster-${CLUSTER_NAME}${i}.yaml"
-	echo "Creating cluster ${CLUSTER_NAME}${i}..."
-	${KIND} create cluster --name "${CLUSTER_NAME}${i}" --kubeconfig "${TMPDIR}/kubeconfigs/liqo_kubeconf_${i}" --config "${TMPDIR}/liqo-cluster-${CLUSTER_NAME}${i}.yaml" --wait 2m &
-  PIDS+=($!)
-done
-
-for pid in "${PIDS[@]}"; do
-  wait "$pid"
+	echo "Creating cluster ${CLUSTER_NAME}${i} adasdasdada..."
+  ${K3D} cluster create "${CLUSTER_NAME}${i}" \
+    --k3s-arg "--cluster-cidr=${POD_CIDR}@server:*" \
+    --k3s-arg "--service-cidr=${SERVICE_CIDR}@server:*" \
+    --no-lb \
+    --network k3d \
+    --verbose
+  ${K3D} node create "${CLUSTER_NAME}${i}-agent" --cluster  "${CLUSTER_NAME}${i}" --role agent --verbose
+  ${K3D} kubeconfig write "${CLUSTER_NAME}${i}" --output "${TMPDIR}/kubeconfigs/liqo_kubeconf_${i}"
 done

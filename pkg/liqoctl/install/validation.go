@@ -33,16 +33,19 @@ import (
 
 // validate validates the correctness of the different parameters.
 func (o *Options) validate(ctx context.Context) error {
+	fmt.Println("Validating Liqo installation parameters...")
 	if err := o.validateClusterName(); err != nil {
 		return fmt.Errorf("failed validating cluster name: %w", err)
 	}
 	o.Printer.Verbosef("Cluster name: %s\n", o.ClusterName)
 
+	fmt.Println("Validating Kubernetes API Server URL...")
 	if err := o.validateAPIServer(); err != nil {
 		return fmt.Errorf("failed validating API Server URL %q: %w", o.APIServer, err)
 	}
 	o.Printer.Verbosef("Kubernetes API Server: %s\n", o.APIServer)
 
+	fmt.Println("Validating Kubernetes API Server certificate...")
 	if err := o.validatePodCIDR(ctx); err != nil {
 		return fmt.Errorf("failed validating Pod CIDR %q: %w. "+
 			"Try setting the correct Pod CIDR using the vanilla *liqoctl install* command, or installing Liqo with Helm",
@@ -50,6 +53,7 @@ func (o *Options) validate(ctx context.Context) error {
 	}
 	o.Printer.Verbosef("Pod CIDR: %s\n", o.PodCIDR)
 
+	fmt.Println("Validating Service CIDR...")
 	if err := o.validateServiceCIDR(ctx); err != nil {
 		return fmt.Errorf("failed validating Service CIDR %q: %w. "+
 			"Try setting the correct Service CIDR using the vanilla *liqoctl install* command, or installing Liqo with Helm",

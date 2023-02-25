@@ -140,9 +140,7 @@ func (p *Printer) StartSpinner(text ...interface{}) *pterm.SpinnerPrinter {
 
 // Verbosef outputs verbose messages guarded by the corresponding flag.
 func (p *Printer) Verbosef(format string, args ...interface{}) {
-	if p.verbose {
-		p.Info.Printfln(strings.TrimRight(format, "\n"), args...)
-	}
+	p.Info.Printfln(strings.TrimRight(format, "\n"), args...)
 }
 
 // CheckErr prints a user friendly error and exits with a non-zero exit code.
