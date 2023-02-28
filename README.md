@@ -68,7 +68,7 @@ Set up your playground and check out the getting started examples, which will gu
 ### Going Further
 
 Got curious?
-Check out the [documentation website](https://docs.liqo.io) for an in-depth overview of the Liqo features, to discover how to install Liqo on your clusters, as well as to find out about the different usage and configuration options.
+Check out theadada [documentation website](https://docs.liqo.io) for an in-depth overview of the Liqo features, to discover how to install Liqo on your clusters, as well as to find out about the different usage and configuration options.
 
 ## Roadmap
 
