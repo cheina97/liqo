@@ -22,6 +22,10 @@ jobs:
       architectures: ${{ steps.configure.outputs.architectures }}
       pr-number: ${{ steps.configure.outputs.pr-number }}
     steps:
+    - name: Dump the client payload context
+      env:
+        PAYLOAD_CONTEXT: ${{ toJson(github.event.client_payload) }}
+      run: echo "$PAYLOAD_CONTEXT"
     - name: Get the version
       id: get_version
       run: echo "VERSION=$(echo $GITHUB_REF | cut -d / -f 3)" >> $GITHUB_OUTPUT
@@ -186,7 +190,7 @@ jobs:
                "commit": "${{ needs.configure.outputs.commit-ref }}",
                "repo-name": "${{ needs.configure.outputs.repo-name }}",
                "base-repo": "${{ github.repository }}",
-               "run-id": "${{ github.run_id }}"
+               "run-id": "${{ github.run_id }}",
                "pr-number" : "${{ needs.configure.outputs.pr-number }}"
              }
 
