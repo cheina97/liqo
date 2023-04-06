@@ -8,7 +8,6 @@ jobs:
   dispatch:
     name: Dispatch
     runs-on: ubuntu-latest
-
     steps:
       - name: Dispatch Slash Commands
         uses: peter-evans/slash-command-dispatch@v3.0.1
