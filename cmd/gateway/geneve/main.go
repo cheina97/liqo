@@ -108,6 +108,7 @@ func run(cmd *cobra.Command, _ []string) error {
 		mgr.GetScheme(),
 		mgr.GetEventRecorderFor("routeconfiguration-controller"),
 		geneve.ForgeRouteTargetLabels(options.GwOptions.Name),
+		false,
 	)
 	if err != nil {
 		return fmt.Errorf("unable to create routeconfiguration reconciler: %w", err)

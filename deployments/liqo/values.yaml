@@ -248,6 +248,23 @@ route:
   # -- Extra tolerations for the route daemonset.
   tolerations: []
 
+fabric:
+  pod:
+    # -- Annotations for the route pod.
+    annotations: {}
+    # -- Labels for the route pod.
+    labels: {}
+    # -- Extra arguments for the route pod.
+    extraArgs: []
+    # -- Resource requests and limits (https://kubernetes.io/docs/user-guide/compute-resources/) for the route pod.
+    resources:
+      limits: {}
+      requests: {}
+  # -- Image repository for the route pod.
+  imageName: "ghcr.io/liqotech/fabric"
+  # -- Extra tolerations for the route daemonset.
+  tolerations: []
+
 gateway:
   # -- The number of gateway instances to run.
   # The gateway component supports active/passive high availability.

@@ -42,16 +42,19 @@ type RouteConfigurationReconciler struct {
 	EventsRecorder record.EventRecorder
 	// Labels used to filter the reconciled resources.
 	Labels map[string]string
+	// EnableFinalizer is used to enable the finalizer on the reconciled resources.
+	EnableFinalizer bool
 }
 
 // NewRouteConfigurationReconciler returns a new RouteConfigurationReconciler.
 func NewRouteConfigurationReconciler(cl client.Client, s *runtime.Scheme,
-	er record.EventRecorder, labels map[string]string) (*RouteConfigurationReconciler, error) {
+	er record.EventRecorder, labels map[string]string, enableFinalizer bool) (*RouteConfigurationReconciler, error) {
 	return &RouteConfigurationReconciler{
-		Client:         cl,
-		Scheme:         s,
-		EventsRecorder: er,
-		Labels:         labels,
+		Client:          cl,
+		Scheme:          s,
+		EventsRecorder:  er,
+		Labels:          labels,
+		EnableFinalizer: enableFinalizer,
 	}, nil
 }
 
@@ -88,14 +91,14 @@ func (r *RouteConfigurationReconciler) Reconcile(ctx context.Context, req ctrl.R
 	deleting := !routeconfiguration.ObjectMeta.DeletionTimestamp.IsZero()
 	containsFinalizer := ctrlutil.ContainsFinalizer(routeconfiguration, routeconfigurationControllerFinalizer)
 	switch {
-	case !deleting && !containsFinalizer:
+	case !deleting && !containsFinalizer && r.EnableFinalizer:
 		if err = r.ensureRouteConfigurationFinalizerPresence(ctx, routeconfiguration); err != nil {
 			return ctrl.Result{}, err
 		}
 
 		return ctrl.Result{}, nil
 
-	case deleting && containsFinalizer:
+	case deleting && containsFinalizer && r.EnableFinalizer:
 		for i := range routeconfiguration.Spec.Table.Rules {
 			if err = EnsureRuleAbsence(&routeconfiguration.Spec.Table.Rules[i], tableID); err != nil {
 				return ctrl.Result{}, err
