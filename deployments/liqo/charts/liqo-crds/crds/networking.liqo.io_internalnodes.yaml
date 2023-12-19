@@ -96,8 +96,8 @@ spec:
               isGateway:
                 description: IsGateway is true if the node is the gateway.
                 type: boolean
-              nodeIP:
-                description: NodeIP is the IP address of the node.
+              nodeAddr:
+                description: NodeAddr is the address of the node.
                 type: string
             type: object
           status:
