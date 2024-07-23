@@ -13,6 +13,7 @@
 # INFRA                 -> the Kubernetes provider for the infrastructure
 # LIQOCTL               -> the path where liqoctl is stored
 # KUBECTL               -> the path where kubectl is stored
+# HELM                  -> the path where helm is stored
 # POD_CIDR_OVERLAPPING  -> the pod CIDR of the clusters is overlapping
 # CLUSTER_TEMPLATE_FILE -> the file where the cluster template is stored
 
@@ -27,7 +28,6 @@ error() {
 }
 trap 'error "${BASH_SOURCE}" "${LINENO}"' ERR
 
-K3D_VERSION="v5.4.7"
 
 function setup_arch_and_os(){
   ARCH=$(uname -m)
@@ -61,29 +61,30 @@ function setup_arch_and_os(){
 
 setup_arch_and_os
 
-
-
-echo "Downloading K3D ${K3D_VERSION}"
-
-if ! command -v docker &> /dev/null;
-then
-	echo "MISSING REQUIREMENT: docker engine could not be found on your system. Please install docker engine to continue: https://docs.docker.com/get-docker/"
-	return 1
-fi
-
-if ! command -v kubectl &> /dev/null
+if ! command -v "${KUBECTL}" &> /dev/null
 then
     echo "WARNING: kubectl could not be found. Downloading and installing it locally..."
     if ! curl --fail -Lo "${KUBECTL}" "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/${OS}/${ARCH}/kubectl"; then
         echo "Error: Unable to download kubectl for '${OS}-${ARCH}'"
         return 1
     fi
-    chmod +x "${KUBECTL}"
-    "${KUBECTL}" version --client
+fi
+chmod +x "${KUBECTL}"
+echo "kubectl version:"
+"${KUBECTL}" version --client
+
+if ! command -v "${HELM}" &> /dev/null
+then
+    echo "WARNING: helm could not be found. Downloading and installing it locally..."
+    if ! curl --fail -Lo "./helm-v3.12.3-${OS}-${ARCH}.tar.gz" "https://get.helm.sh/helm-v3.12.3-${OS}-${ARCH}.tar.gz"; then
+        echo "Error: Unable to download helm for '${OS}-${ARCH}'"
+        return 1
+    fi
+    tar -zxvf "helm-v3.12.3-${OS}-${ARCH}.tar.gz"
+    mv "${OS}-${ARCH}/helm" "${HELM}"
+    rm -rf "${OS}-${ARCH}"
 fi
 
-if [[ ! -f "${BINDIR}/k3d" ]]; then
-    echo "k3d could not be found. Downloading https://k3d.sigs.k8s.io/dl/${K3D_VERSION}/k3d-${OS}-${ARCH} ..."
-	curl -Lo "${BINDIR}"/k3d "https://github.com/k3d-io/k3d/releases/download/${K3D_VERSION}/k3d-${OS}-${ARCH}"
-	chmod +x "${BINDIR}"/k3d
-fi
+chmod +x "${HELM}"
+echo "helm version:"
+"${BINDIR}/helm" version

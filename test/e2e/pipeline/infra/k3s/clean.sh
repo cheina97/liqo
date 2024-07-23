@@ -12,6 +12,7 @@
 # LIQO_VERSION          -> the liqo version to test
 # INFRA                 -> the Kubernetes provider for the infrastructure
 # LIQOCTL               -> the path where liqoctl is stored
+# KUBECTL               -> the path where kubectl is stored
 # POD_CIDR_OVERLAPPING  -> the pod CIDR of the clusters is overlapping
 # CLUSTER_TEMPLATE_FILE -> the file where the cluster template is stored
 
@@ -26,6 +27,12 @@ error() {
 }
 trap 'error "${BASH_SOURCE}" "${LINENO}"' ERR
 
-# Cleaning all remaining clusters
+CLUSTER_NAME=cluster
+RUNNER_NAME=${RUNNER_NAME:-"test"}
+CAPI_CLUSTER_NAME="${RUNNER_NAME}-${CLUSTER_NAME}"
 
-${K3D} cluster delete --all
+# Cleaning all remaining clusters
+for i in $(seq 1 "${CLUSTER_NUMBER}")
+do
+  ${KUBECTL} delete clusters.cluster.x-k8s.io --namespace=liqo-ci "${CAPI_CLUSTER_NAME}${i}" --ignore-not-found
+done

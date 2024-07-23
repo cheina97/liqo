@@ -73,12 +73,7 @@ do
   if [[ "${INFRA}" == "k3s" ]]; then
     COMMON_ARGS=("${COMMON_ARGS[@]}" --pod-cidr "${POD_CIDR}" --service-cidr "${SERVICE_CIDR}")
   fi
-  if [[ "${INFRA}" == "cluster-api" ]]; then
-    LIQO_PROVIDER="kubeadm"
-    COMMON_ARGS=("${COMMON_ARGS[@]}")
-  else
-    LIQO_PROVIDER="${INFRA}"
-  fi
+  LIQO_PROVIDER="${INFRA}"
 
   if [ "${i}" == "1" ]; then
     # Install Liqo with Helm, to check that values generation works correctly.
