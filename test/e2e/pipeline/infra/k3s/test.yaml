@@ -1,0 +1,142 @@
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: k3s
+  namespace: liqo-ci
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks:
+      - 10.243.0.0/16
+    serviceDomain: cluster.local
+  controlPlaneRef:
+    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+    kind: KThreesControlPlane
+    name: k3s-control-plane
+    namespace: liqo-ci
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+    kind: KubevirtCluster
+    name: k3s
+    namespace: liqo-ci
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+kind: KubevirtCluster
+metadata:
+  name: k3s
+  namespace: liqo-ci
+spec:
+  controlPlaneServiceTemplate:
+    spec:
+      type: ClusterIP
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+kind: KubevirtMachineTemplate
+metadata:
+  name: k3s-control-plane
+  namespace: liqo-ci
+spec:
+  template:
+    spec:
+      virtualMachineTemplate:
+        metadata:
+          namespace: liqo-ci
+        spec:
+          runStrategy: Always
+          template:
+            spec:
+              domain:
+                cpu:
+                  cores: 2
+                devices:
+                  disks:
+                  - disk:
+                      bus: virtio
+                    name: containervolume
+                  networkInterfaceMultiqueue: true
+                memory:
+                  guest: 4Gi
+              evictionStrategy: External
+              volumes:
+              - containerDisk:
+                  image: harbor.crownlabs.polito.it/capk/ubuntu-2204-container-disk:v
+                name: containervolume
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+kind: KThreesControlPlane
+metadata:
+  name: k3s-control-plane
+  namespace: liqo-ci
+spec:
+  infrastructureTemplate:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    kind: KubevirtMachineTemplate
+    name: k3s-control-plane
+  replicas: 1
+  version: 1.28.5
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+kind: KubevirtMachineTemplate
+metadata:
+  name: k3s-md-0
+  namespace: liqo-ci
+spec:
+  template:
+    spec:
+      virtualMachineTemplate:
+        metadata:
+          namespace: liqo-ci
+        spec:
+          runStrategy: Always
+          template:
+            spec:
+              domain:
+                cpu:
+                  cores: 2
+                devices:
+                  disks:
+                  - disk:
+                      bus: virtio
+                    name: containervolume
+                  networkInterfaceMultiqueue: true
+                memory:
+                  guest: 4Gi
+              evictionStrategy: External
+              volumes:
+              - containerDisk:
+                  image: harbor.crownlabs.polito.it/capk/ubuntu-2204-container-disk:v
+                name: containervolume
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KThreesConfigTemplate
+metadata:
+  name: k3s-md-0
+  namespace: liqo-ci
+spec:
+  template:
+    spec: null
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachineDeployment
+metadata:
+  name: k3s-md-0
+  namespace: liqo-ci
+spec:
+  clusterName: k3s
+  replicas: 2
+  selector:
+    matchLabels: null
+  template:
+    spec:
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          kind: KThreesConfigTemplate
+          name: k3s-md-0
+          namespace: liqo-ci
+      clusterName: k3s
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+        kind: KubevirtMachineTemplate
+        name: k3s-md-0
+        namespace: liqo-ci

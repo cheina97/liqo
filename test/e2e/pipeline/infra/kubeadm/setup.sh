@@ -67,11 +67,11 @@ do
   POD_CIDR_ESC_2=$(echo $POD_CIDR | cut -d'/' -f2)
   POD_CIDR_ESC="${POD_CIDR_ESC_1}\/${POD_CIDR_ESC_2}"
   clusterctl generate cluster "${CAPI_CLUSTER_NAME}${i}" \
+    --from capi.tmpl \
     --kubernetes-version "$K8S_VERSION" \
     --control-plane-machine-count 1 \
     --worker-machine-count 2 \
-    --target-namespace "$TARGET_NAMESPACE" \
-    --infrastructure kubevirt | sed "s/10.243.0.0\/16/$POD_CIDR_ESC/g" | ${KUBECTL} apply -f -
+    --target-namespace "$TARGET_NAMESPACE" | sed "s/10.243.0.0\/16/$POD_CIDR_ESC/g" | ${KUBECTL} apply -f -
 done
 
 for i in $(seq 1 "${CLUSTER_NUMBER}");
