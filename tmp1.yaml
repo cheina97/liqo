@@ -1,0 +1,50 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  creationTimestamp: "2024-07-23T16:35:58Z"
+  labels:
+    cluster.x-k8s.io/provider: control-plane-k3s
+    clusterctl.cluster.x-k8s.io: ""
+  name: capi-k3s-control-plane-leader-election-role
+  namespace: cluster-api
+  resourceVersion: "1512545689"
+  uid: 1059e9d6-2ee5-4dc0-8c20-3b3f3d928971
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - configmaps/status
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete

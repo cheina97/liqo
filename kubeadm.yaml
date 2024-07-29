@@ -1,32 +1,32 @@
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: Cluster
 metadata:
-  name: "${CLUSTER_NAME}"
-  namespace: "${NAMESPACE}"
+  name: kubeadm-2
+  namespace: liqo-team
 spec:
   clusterNetwork:
     pods:
       cidrBlocks:
-      - 10.243.0.0/16
+      - 10.90.0.0/16
     services:
       cidrBlocks:
       - 10.95.0.0/16
   controlPlaneRef:
     apiVersion: controlplane.cluster.x-k8s.io/v1beta1
     kind: KubeadmControlPlane
-    name: "${CLUSTER_NAME}-control-plane"
-    namespace: "${NAMESPACE}"
+    name: kubeadm-2-control-plane
+    namespace: liqo-team
   infrastructureRef:
     apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
     kind: KubevirtCluster
-    name: "${CLUSTER_NAME}"
-  namespace: "${NAMESPACE}"
+    name: kubeadm-2
+    namespace: liqo-team
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
 kind: KubevirtCluster
 metadata:
-  name: "${CLUSTER_NAME}"
-  namespace: "${NAMESPACE}"
+  name: kubeadm-2
+  namespace: liqo-team
 spec:
   controlPlaneServiceTemplate:
     spec:
@@ -35,14 +35,14 @@ spec:
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
 kind: KubevirtMachineTemplate
 metadata:
-  name: "${CLUSTER_NAME}-control-plane"
-  namespace: "${NAMESPACE}"
+  name: kubeadm-2-control-plane
+  namespace: liqo-team
 spec:
   template:
     spec:
       virtualMachineTemplate:
         metadata:
-          namespace: "${NAMESPACE}"
+          namespace: liqo-team
         spec:
           runStrategy: Always
           template:
@@ -61,54 +61,54 @@ spec:
               evictionStrategy: External
               volumes:
               - containerDisk:
-                  image: "${NODE_VM_IMAGE_TEMPLATE}"
+                  image: harbor.crownlabs.polito.it/capk/ubuntu-2204-container-disk:v1.28.5
                 name: containervolume
 ---
 apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 kind: KubeadmControlPlane
 metadata:
-  name: "${CLUSTER_NAME}-control-plane"
-  namespace: "${NAMESPACE}"
+  name: kubeadm-2-control-plane
+  namespace: liqo-team
 spec:
-  replicas: ${CONTROL_PLANE_MACHINE_COUNT}
   kubeadmConfigSpec:
     clusterConfiguration:
       networking:
-        dnsDomain: "${CLUSTER_NAME}.${NAMESPACE}.local"
-        podSubnet: 10.243.0.0/16
+        dnsDomain: kubeadm-2.liqo-team.local
+        podSubnet: 10.90.0.0/16
         serviceSubnet: 10.95.0.0/16
     initConfiguration:
       nodeRegistration:
-        criSocket: "${CRI_PATH}"
+        criSocket: /var/run/containerd/containerd.sock
     joinConfiguration:
       nodeRegistration:
-        criSocket: "${CRI_PATH}"
+        criSocket: /var/run/containerd/containerd.sock
   machineTemplate:
     infrastructureRef:
       apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
       kind: KubevirtMachineTemplate
-      name: ${CLUSTER_NAME}-control-plane
-      namespace: liqo-ci
-  version: "${KUBERNETES_VERSION}"
+      name: kubeadm-2-control-plane
+      namespace: liqo-team
+  replicas: 1
+  version: 1.28.5
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
 kind: KubevirtMachineTemplate
 metadata:
-  name: "${CLUSTER_NAME}-md-0"
-  namespace: "${NAMESPACE}"
+  name: kubeadm-2-md-0
+  namespace: liqo-team
 spec:
   template:
     spec:
       virtualMachineTemplate:
         metadata:
-          namespace: "${NAMESPACE}"
+          namespace: liqo-team
         spec:
           runStrategy: Always
           template:
             spec:
               domain:
                 cpu:
-                  cores: 2
+                  cores: 4
                 devices:
                   disks:
                   - disk:
@@ -116,18 +116,18 @@ spec:
                     name: containervolume
                   networkInterfaceMultiqueue: true
                 memory:
-                  guest: 4Gi
+                  guest: 8Gi
               evictionStrategy: External
               volumes:
               - containerDisk:
-                  image: "${NODE_VM_IMAGE_TEMPLATE}"
+                  image: harbor.crownlabs.polito.it/capk/ubuntu-2204-container-disk:v1.28.5
                 name: containervolume
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfigTemplate
 metadata:
-  name: "${CLUSTER_NAME}-md-0"
-  namespace: "${NAMESPACE}"
+  name: kubeadm-2-md-0
+  namespace: liqo-team
 spec:
   template:
     spec:
@@ -138,25 +138,25 @@ spec:
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: MachineDeployment
 metadata:
-  name: "${CLUSTER_NAME}-md-0"
-  namespace: "${NAMESPACE}"
+  name: kubeadm-2-md-0
+  namespace: liqo-team
 spec:
-  clusterName: "${CLUSTER_NAME}"
-  replicas: ${WORKER_MACHINE_COUNT}
+  clusterName: kubeadm-2
+  replicas: 2
   selector:
     matchLabels: null
   template:
     spec:
-      clusterName: "${CLUSTER_NAME}"
-      version: "${KUBERNETES_VERSION}"
       bootstrap:
         configRef:
           apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
           kind: KubeadmConfigTemplate
-          name: "${CLUSTER_NAME}-md-0"
-          namespace: "${NAMESPACE}"
+          name: kubeadm-2-md-0
+          namespace: liqo-team
+      clusterName: kubeadm-2
       infrastructureRef:
-        name: "${CLUSTER_NAME}-md-0"
-        namespace: "${NAMESPACE}"
         apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
         kind: KubevirtMachineTemplate
+        name: kubeadm-2-md-0
+        namespace: liqo-team
+      version: 1.28.5
