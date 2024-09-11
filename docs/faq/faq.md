@@ -13,6 +13,8 @@ This section contains the answers to the most frequently asked questions by the 
 * [Peering](FAQPeeringSection)
   * [How to force unpeer a cluster?](FAQForceUnpeer)
   * [Is it possible to peer clusters using an ingress?](FAQPeerOverIngress)
+* [TroubleShooting](FAQTrouble)
+  * [Check the network](FAQTroubleNetwork)
 
 (FAQGeneralSection)=
 
@@ -101,3 +103,18 @@ Make sure to set `auth.ingress.enable` to `true` and configure the rest of the v
 ```{admonition} Note
 The `liqo-gateway` service can't be exposed through a common ingress (proxies like nginx which works with HTTP only) because it uses UDP.
 ```
+
+(FAQTrouble)=
+
+## TroubleShooting
+
+This section contains the answers to the most common issues encountered by the community (Slack, GitHub, etc.).
+
+(FAQTroubleNetwork)=
+
+### Check the network
+
+If you are experiencing network issues, you can check the network status of your cluster using the following commands:
+
+```bash
+
