@@ -264,3 +264,11 @@ metrics:
 
 e2e/%:
 	go test ${PWD}/test/$@/... -count=1 -timeout=30m -p=1
+
+commitlint:
+	npm install -g @commitlint/{cli,config-conventional}
+
+githooks: commitlint
+	git config --local core.hooksPath .githooks/
+	chmod +x .githooks/*
+	git config --get core.hooksPath

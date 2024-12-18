@@ -32,3 +32,4 @@ autoserve: install
 
 lint:
 	markdownlint lint -c ../.markdownlint.yml **/*.md
+	
