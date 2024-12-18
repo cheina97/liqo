@@ -1,0 +1,49 @@
+name: Conventional Commit Labels
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  assign-labels:
+    runs-on: ubuntu-latest
+    name: Assign labels in pull request
+    if: github.event.pull_request.merged == false
+    steps:
+      - name: Execute assign labels
+        id: action-assign-labels
+        uses: mauroalderete/action-assign-labels@v1
+        with:
+          github-token: ${{ secrets.LABELS_TOKEN }}
+          conventional-commits: |
+            conventional-commits:
+              - type: 'fix'
+                nouns: ['FIX', 'Fix', 'fix', 'FIXED', 'Fixed', 'fixed']
+                labels: ['bug']
+              - type: 'feature'
+                nouns: ['FEATURE', 'Feature', 'feature', 'FEAT', 'Feat', 'feat']
+                labels: ['feature']
+              - type: 'breaking_change'
+                nouns: ['BREAKING CHANGE', 'BREAKING', 'MAJOR']
+                labels: ['BREAKING CHANGE']
+              - type: 'docs'
+                nouns: ['DOCS', 'Docs', 'docs']
+                labels: ['docs']
+              - type: 'refactor'
+                nouns: ['REFACTOR', 'Refactor', 'refactor']
+                labels: ['refactor']
+              - type: 'test'
+                nouns: ['TEST', 'Test', 'test']
+                labels: ['test']
+              - type: 'style'
+                nouns: ['STYLE', 'Style', 'style']
+                labels: ['style']
+              - type: 'chore'
+                nouns: ['CHORE', 'Chore', 'chore']
+                labels: ['chore']
+              - type: 'ci'
+                nouns: ['CI', 'Ci', 'ci']
+                labels: ['ci']
+              - type: 'perf'
+                nouns: ['PERF', 'Perf', 'perf']
+                labels: ['perf']
+          
