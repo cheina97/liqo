@@ -37,7 +37,8 @@ function gke_create_cluster() {
     local num_nodes=$4
     local index=$5
 
-    local cluster_version="${K8S_VERSION%.*}"
+    local cluster_version="${K8S_VERSION#v}"
+    cluster_version=$(echo "${cluster_version}" | awk -F. '{print $1"."$2}')
 
     local arg_dataplane=""
     if [[ $GKE_DATAPLANE == "v2" ]]; then
@@ -55,7 +56,7 @@ function gke_create_cluster() {
         --release-channel "regular" --no-enable-basic-auth --metadata disable-legacy-endpoints=true \
         --network "projects/${GCLOUD_PROJECT_ID}/global/networks/liqo-${index}" --subnetwork "projects/${GCLOUD_PROJECT_ID}/regions/${cluster_region}/subnetworks/liqo-nodes" $arg_dataplane --cluster-ipv4-cidr="${pod_cidr}" \
         --default-max-pods-per-node "110" --security-posture=standard --workload-vulnerability-scanning=disabled --no-enable-master-authorized-networks \
-        --enable-autorepair --max-surge-upgrade 1 --max-unavailable-upgrade 0 --binauthz-evaluation-mode=DISABLED \
+        --enable-autorepair --max-surge-upgrade 1 --max-unavailable-upgrade 0 --binauthz-evaluation-mode=DISABLED --no-enable-insecure-kubelet-readonly-port \
         --addons HorizontalPodAutoscaling,HttpLoadBalancing,GcePersistentDiskCsiDriver \
         --no-enable-managed-prometheus 
     return 0

@@ -61,7 +61,7 @@ function get_cluster_labels() {
 LIQO_VERSION="${LIQO_VERSION:-$(git rev-parse HEAD)}"
 
 export SERVICE_CIDR=10.100.0.0/16
-export POD_CIDR=10.200.0.0/16
+export POD_CIDR=10.0.0.0/16
 export POD_CIDR_OVERLAPPING=${POD_CIDR_OVERLAPPING:-"false"}
 export HA_REPLICAS=2
 
@@ -101,11 +101,11 @@ do
   
   if [[ "${INFRA}" == "aks" ]]; then
     AKS_RESOURCE_GROUP="liqo${i}"
-    COMMON_ARGS=("${COMMON_ARGS[@]}" --subscription-id "${AZ_SUBSCRIPTION_ID}" --resource-group-name "${AKS_RESOURCE_GROUP}" --resource-name "${CLUSTER_NAME}")
+    COMMON_ARGS=("${COMMON_ARGS[@]}" --subscription-id "${AZ_SUBSCRIPTION_ID}" --resource-group-name "${AKS_RESOURCE_GROUP}" --resource-name "${CLUSTER_NAME}" --pod-code "$POD_CIDR")
   fi
 
   if [[ "${INFRA}" == "gke" ]]; then
-    COMMON_ARGS=("${COMMON_ARGS[@]}" --project-id "${GCLOUD_PROJECT_ID}" --zone "${GKE_ZONES[$i-1]}" --credentials-path "${GCLOUD_KEY_FILE}")
+    COMMON_ARGS=("${COMMON_ARGS[@]}" --project-id "${GCLOUD_PROJECT_ID}" --zone "${GKE_ZONES[$i-1]}" --credentials-path "${BINDIR}/gke_key_file.json")
   fi
 
   if [[ "${INFRA}" == "kubeadm" ]]; then
