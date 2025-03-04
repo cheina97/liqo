@@ -44,9 +44,9 @@ To do so, you need to pass the IP address or FQDN of the NAT and port where conf
 ```bash
 liqoctl peer \
     --remote-kubeconfig $PATH_TO_CLUSTER2_KUBECONFIG \
-    --client-address $NAT_PUBBLIC_ADDR \
-    --client-port $NAT_MAPPING_PORT \
-    --server-service-nodeport $GATEWAY_SERVER_NODEPORT
+    --gw-client-address $NAT_PUBBLIC_ADDR \
+    --gw-client-port $NAT_MAPPING_PORT \
+    --gw-server-service-nodeport $GATEWAY_SERVER_NODEPORT
 ```
 
 Filling the placeholders, in our specific example, the command becomes:
@@ -54,9 +54,9 @@ Filling the placeholders, in our specific example, the command becomes:
 ```bash
 liqoctl peer \
     --remote-kubeconfig $PATH_TO_CLUSTER2_KUBECONFIG \
-    --client-address 203.0.113.8 \
-    --client-port 40582 \
-    --server-service-nodeport 30742
+    --gw-client-address 203.0.113.8 \
+    --gw-client-port 40582 \
+    --gw-server-service-nodeport 30742
 
 ```
 
@@ -66,7 +66,7 @@ The command above sets up a complete peering between cluster 1 and cluster 2.
 ```bash
 liqoctl network connect \
     --remote-kubeconfig $PATH_TO_CLUSTER2_KUBECONFIG \
-    --client-address $NAT_PUBBLIC_ADDR \
-    --client-port $NAT_MAPPING_PORT \
-    --server-service-nodeport $GATEWAY_SERVER_NODEPORT
+    --gw-client-address $NAT_PUBBLIC_ADDR \
+    --gw-client-port $NAT_MAPPING_PORT \
+    --gw-server-service-nodeport $GATEWAY_SERVER_NODEPORT
 ```
