@@ -17,9 +17,9 @@ package wireguard
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"golang.zx2c4.com/wireguard/wgctrl"
-	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
@@ -45,6 +45,9 @@ type PublicKeysReconciler struct {
 	Scheme         *runtime.Scheme
 	EventsRecorder record.EventRecorder
 	Options        *Options
+
+	netbirdOnce sync.Once
+	netbirdErr  error
 }
 
 // NewPublicKeysReconciler returns a new PublicKeysReconciler.
@@ -79,9 +82,9 @@ func (r *PublicKeysReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, nil
 	}
 
-	if err := configureDevice(r.Wgcl, r.Options, wgtypes.Key(publicKey.Spec.PublicKey)); err != nil {
+	/* if err := configureDevice(r.Wgcl, r.Options, wgtypes.Key(publicKey.Spec.PublicKey)); err != nil {
 		return ctrl.Result{}, err
-	}
+	} */
 
 	return ctrl.Result{}, EnsureConnection(ctx, r.Client, r.Scheme, r.Options)
 }

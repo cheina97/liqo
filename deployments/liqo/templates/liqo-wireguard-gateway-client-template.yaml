@@ -64,7 +64,7 @@ spec:
                 - --metrics-address=:8082
                 {{- end }}
                 - --health-probe-bind-address=:8083
-                - --ping-enabled=true
+                - --ping-enabled=false
                 - --ping-loss-threshold={{ .Values.networking.gatewayTemplates.ping.lossThreshold }}
                 - --ping-interval={{ .Values.networking.gatewayTemplates.ping.interval }}
                 - --ping-update-status-interval={{ .Values.networking.gatewayTemplates.ping.updateStatusInterval }}
@@ -147,6 +147,24 @@ spec:
                   mountPath: /ipc
                 - name: wireguard-config
                   mountPath: /etc/wireguard/keys
+              - name: tailscale
+                image: tailscale/tailscale:latest
+                env:
+                - name: TS_AUTHKEY
+                  value: ""
+                - name: TS_KUBE_SECRET
+                  value: "tailscale-state-secret" # The name of the secret where state is saved
+                - name: TS_USERSPACE
+                  value: "false" # Set to "true" if you cannot use NET_ADMIN
+                - name: TS_TAILSCALED_EXTRA_ARGS
+                  value: "--tun liqo-tunnel" # Set to "true" if you are running in a Kubernetes cluster
+                - name: TS_EXTRA_ARGS
+                  value: "--advertise-exit-node"
+                securityContext:
+                  capabilities:
+                    add:
+                      - NET_ADMIN # Required for creating the 'tun' interface
+                      - NET_RAW
               - name: geneve
                 image: {{ .Values.networking.gatewayTemplates.container.geneve.image.name }}{{ include "liqo.suffix" $geneveConfig }}:{{ include "liqo.version" $geneveConfig }}
                 imagePullPolicy: {{ .Values.pullPolicy }}

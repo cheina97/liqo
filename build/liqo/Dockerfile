@@ -7,6 +7,7 @@ ARG TARGETARCH
 RUN if [ "$COMPONENT" = "geneve" ] || [ "$COMPONENT" = "wireguard" ] || [ "$COMPONENT" = "gateway" ]; then \
     set -x; \
     apk add --no-cache iproute2 nftables bash wireguard-tools tcpdump conntrack-tools curl iputils; \
+    curl -fsSL https://pkgs.netbird.io/install.sh | sh; \
     fi
 
 RUN if [ "$COMPONENT" = "wireguard" ]; then \
