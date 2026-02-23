@@ -74,6 +74,14 @@ type InternalNodeStatusNodeIP struct {
 type InternalNodeStatus struct {
 	// NodeAddress is the address of the node.
 	NodeIP InternalNodeStatusNodeIP `json:"nodeIP"`
+	// RouteConfigurations contains the status of all RouteConfigurations applied to this node.
+	// The key is the name of the RouteConfiguration resource.
+	// +optional
+	RouteConfigurations map[string][]metav1.Condition `json:"routeConfigurations,omitempty"`
+	// FirewallConfigurations contains the status of all FirewallConfigurations applied to this node.
+	// The key is the name of the FirewallConfiguration resource.
+	// +optional
+	FirewallConfigurations map[string][]metav1.Condition `json:"firewallConfigurations,omitempty"`
 }
 
 // +kubebuilder:object:root=true

@@ -37,6 +37,11 @@ import (
 	"github.com/liqotech/liqo/pkg/gateway"
 )
 
+const (
+	// internalNodeStatusFieldOwner is the field owner for InternalNode status updates using Server-Side Apply.
+	internalNodeStatusFieldOwner = "liqo-fabric-source-detector"
+)
+
 // GatewayReconciler manage gateway.
 type GatewayReconciler struct {
 	client.Client
@@ -82,6 +87,9 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, fmt.Errorf("unable to get the internal node %q: %w", r.Options.NodeName, err)
 	}
 
+	// Set GVK for Server-Side Apply (currently commented out as it may not be strictly necessary)
+	// internalnode.SetGroupVersionKind(networkingv1beta1.InternalNodeGroupVersionResource.GroupVersion().WithKind(networkingv1beta1.InternalNodeKind))
+
 	klog.V(4).Infof("Reconciling gateway pod %s", req.String())
 
 	if pod.Status.PodIP == "" {
@@ -102,7 +110,11 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		klog.Infof("Enforced internal node remote IP %s", src)
 	}
 
-	return ctrl.Result{}, r.Client.Status().Update(ctx, internalnode)
+	patchOpts := []client.SubResourcePatchOption{
+		client.FieldOwner(internalNodeStatusFieldOwner),
+		client.ForceOwnership,
+	}
+	return ctrl.Result{}, r.Client.Status().Patch(ctx, internalnode, client.Apply, patchOpts...)
 }
 
 // SetupWithManager register the GatewayReconciler to the manager.

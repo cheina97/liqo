@@ -39,6 +39,11 @@ import (
 	"github.com/liqotech/liqo/pkg/utils/resource"
 )
 
+const (
+	// gatewayServerStatusFieldOwner is the field owner for GatewayServer status updates using Server-Side Apply.
+	gatewayServerStatusFieldOwner = "liqo-gateway-server-controller"
+)
+
 // ServerReconciler manage GatewayServer lifecycle.
 type ServerReconciler struct {
 	client.Client
@@ -96,13 +101,20 @@ func (r *ServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res
 		return ctrl.Result{}, err
 	}
 
+	// Set GVK for Server-Side Apply (currently commented out as it may not be strictly necessary)
+	// gwServer.SetGroupVersionKind(networkingv1beta1.GatewayServerGroupVersionResource.GroupVersion().WithKind(networkingv1beta1.GatewayServerKind))
+
 	defer func() {
-		newErr := r.Status().Update(ctx, gwServer)
+		patchOpts := []client.SubResourcePatchOption{
+			client.FieldOwner(gatewayServerStatusFieldOwner),
+			client.ForceOwnership,
+		}
+		newErr := r.Status().Patch(ctx, gwServer, client.Apply, patchOpts...)
 		if newErr != nil {
 			if err != nil {
 				klog.Errorf("Error reconciling the gateway server %q: %s", req.NamespacedName, err)
 			}
-			klog.Errorf("Unable to update the gateway server %q: %s", req.NamespacedName, newErr)
+			klog.Errorf("Unable to patch the gateway server status %q: %s", req.NamespacedName, newErr)
 			err = newErr
 			return
 		}

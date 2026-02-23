@@ -94,6 +94,14 @@ type GatewayServerStatus struct {
 	SecretRef *corev1.ObjectReference `json:"secretRef,omitempty"`
 	// InternalEndpoint specifies the endpoint for the internal network.
 	InternalEndpoint *InternalGatewayEndpoint `json:"internalEndpoint,omitempty"`
+	// RouteConfigurations contains the status of all RouteConfigurations applied to this gateway server.
+	// The key is the name of the RouteConfiguration resource.
+	// +optional
+	RouteConfigurations map[string][]metav1.Condition `json:"routeConfigurations,omitempty"`
+	// FirewallConfigurations contains the status of all FirewallConfigurations applied to this gateway server.
+	// The key is the name of the FirewallConfiguration resource.
+	// +optional
+	FirewallConfigurations map[string][]metav1.Condition `json:"firewallConfigurations,omitempty"`
 }
 
 // +kubebuilder:object:root=true
