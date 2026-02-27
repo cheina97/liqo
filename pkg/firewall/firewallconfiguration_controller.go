@@ -39,6 +39,10 @@ import (
 	"github.com/liqotech/liqo/pkg/utils/network/netmonitor"
 )
 
+// StatusUpdateFunc is a function that updates the status of a resource with FirewallConfiguration conditions.
+// The applyErr parameter indicates whether the FirewallConfiguration was successfully applied (nil) or not (error).
+type StatusUpdateFunc func(ctx context.Context, fwcfg *networkingv1beta1.FirewallConfiguration, applyErr error) error
+
 // FirewallConfigurationReconciler manage Configuration lifecycle.
 //
 //nolint:revive // We usually the name of the reconciled resource in the controller name.
@@ -52,42 +56,51 @@ type FirewallConfigurationReconciler struct {
 	LabelsSets []labels.Set
 	// EnableFinalizer is used to enable the finalizer on the reconciled resources.
 	EnableFinalizer bool
+	// StatusUpdateFunc is the function to update the status of the resource.
+	StatusUpdateFunc StatusUpdateFunc
 }
 
 // newFirewallConfigurationReconciler returns a new FirewallConfigurationReconciler.
 func newFirewallConfigurationReconciler(cl client.Client, s *runtime.Scheme, podname string,
-	er record.EventRecorder, labelsSets []labels.Set, enableFinalizer bool) (*FirewallConfigurationReconciler, error) {
+	er record.EventRecorder, labelsSets []labels.Set, enableFinalizer bool, statusUpdateFunc StatusUpdateFunc) (*FirewallConfigurationReconciler, error) {
 	nftConnection, err := nftables.New()
 	if err != nil {
 		return nil, fmt.Errorf("unable to create nftables connection: %w", err)
 	}
 	return &FirewallConfigurationReconciler{
-		PodName:         podname,
-		NftConnection:   nftConnection,
-		Client:          cl,
-		Scheme:          s,
-		EventsRecorder:  er,
-		LabelsSets:      labelsSets,
-		EnableFinalizer: enableFinalizer,
+		PodName:          podname,
+		NftConnection:    nftConnection,
+		Client:           cl,
+		Scheme:           s,
+		EventsRecorder:   er,
+		LabelsSets:       labelsSets,
+		EnableFinalizer:  enableFinalizer,
+		StatusUpdateFunc: statusUpdateFunc,
 	}, nil
 }
 
 // NewFirewallConfigurationReconcilerWithFinalizer returns a new FirewallConfigurationReconciler that uses finalizer.
 func NewFirewallConfigurationReconcilerWithFinalizer(cl client.Client, s *runtime.Scheme, podname string,
-	er record.EventRecorder, labelsSets []labels.Set) (*FirewallConfigurationReconciler, error) {
-	return newFirewallConfigurationReconciler(cl, s, podname, er, labelsSets, true)
+	er record.EventRecorder, labelsSets []labels.Set, statusUpdateFunc StatusUpdateFunc) (*FirewallConfigurationReconciler, error) {
+	return newFirewallConfigurationReconciler(cl, s, podname, er, labelsSets, true, statusUpdateFunc)
 }
 
 // NewFirewallConfigurationReconcilerWithoutFinalizer returns a new FirewallConfigurationReconciler that doesn't use finalizer.
 func NewFirewallConfigurationReconcilerWithoutFinalizer(cl client.Client, s *runtime.Scheme, podname string,
-	er record.EventRecorder, labelsSets []labels.Set) (*FirewallConfigurationReconciler, error) {
-	return newFirewallConfigurationReconciler(cl, s, podname, er, labelsSets, false)
+	er record.EventRecorder, labelsSets []labels.Set, statusUpdateFunc StatusUpdateFunc) (*FirewallConfigurationReconciler, error) {
+	return newFirewallConfigurationReconciler(cl, s, podname, er, labelsSets, false, statusUpdateFunc)
 }
 
 // cluster-role
 // +kubebuilder:rbac:groups=networking.liqo.io,resources=firewallconfigurations,verbs=get;list;watch;update;patch
 // +kubebuilder:rbac:groups=networking.liqo.io,resources=firewallconfigurations/status,verbs=get;list;watch;update;patch
 // +kubebuilder:rbac:groups=networking.liqo.io,resources=firewallconfigurations/finalizers,verbs=update
+// +kubebuilder:rbac:groups=networking.liqo.io,resources=internalnodes,verbs=get;list;watch
+// +kubebuilder:rbac:groups=networking.liqo.io,resources=internalnodes/status,verbs=get;patch
+// +kubebuilder:rbac:groups=networking.liqo.io,resources=gatewayclients,verbs=get;list;watch
+// +kubebuilder:rbac:groups=networking.liqo.io,resources=gatewayclients/status,verbs=get;patch
+// +kubebuilder:rbac:groups=networking.liqo.io,resources=gatewayservers,verbs=get;list;watch
+// +kubebuilder:rbac:groups=networking.liqo.io,resources=gatewayservers/status,verbs=get;patch
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile manage FirewallConfigurations, applying nftables configuration.
@@ -196,20 +209,17 @@ func forgeLabelsPredicate(labelsSets []labels.Set) (predicate.Predicate, error) 
 }
 
 func getConditionRef(fwcfg *networkingv1beta1.FirewallConfiguration, podname string) *networkingv1beta1.FirewallConfigurationStatusCondition {
-	var conditionRef *networkingv1beta1.FirewallConfigurationStatusCondition
 	for i := range fwcfg.Status.Conditions {
 		if fwcfg.Status.Conditions[i].Host == podname {
-			conditionRef = &fwcfg.Status.Conditions[i]
-			break
+			return &fwcfg.Status.Conditions[i]
 		}
 	}
-	if conditionRef == nil {
-		conditionRef = &networkingv1beta1.FirewallConfigurationStatusCondition{
-			Host: podname,
-		}
-		fwcfg.Status.Conditions = append(fwcfg.Status.Conditions, *conditionRef)
-	}
-	return conditionRef
+	// Condition not found, create a new one
+	fwcfg.Status.Conditions = append(fwcfg.Status.Conditions, networkingv1beta1.FirewallConfigurationStatusCondition{
+		Host: podname,
+	})
+	// Return pointer to the newly appended item
+	return &fwcfg.Status.Conditions[len(fwcfg.Status.Conditions)-1]
 }
 
 // UpdateStatus updates the status of the given FirewallConfiguration.
@@ -219,22 +229,27 @@ func (r *FirewallConfigurationReconciler) UpdateStatus(ctx context.Context, er r
 	conditionRef.Host = podname
 	conditionRef.Type = networkingv1beta1.FirewallConfigurationStatusConditionTypeApplied
 
-	oldStatus := conditionRef.Status
 	if err == nil {
 		conditionRef.Status = metav1.ConditionTrue
 	} else {
 		conditionRef.Status = metav1.ConditionFalse
 	}
 
-	if oldStatus == conditionRef.Status {
-		return nil
-	}
-
 	conditionRef.LastTransitionTime = metav1.Now()
 
 	er.Eventf(fwcfg, "Normal", "FirewallConfigurationUpdate", "FirewallConfiguration %s: %s", conditionRef.Type, conditionRef.Status)
+
+	// Update FirewallConfiguration status
 	if clerr := r.Client.Status().Update(ctx, fwcfg); clerr != nil {
 		err = errors.Join(err, clerr)
 	}
+
+	// Update the target resource status (InternalNode or Gateway) using the injected function
+	if r.StatusUpdateFunc != nil {
+		if clerr := r.StatusUpdateFunc(ctx, fwcfg, err); clerr != nil {
+			err = errors.Join(err, clerr)
+		}
+	}
+
 	return err
 }

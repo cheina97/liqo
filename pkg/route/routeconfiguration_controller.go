@@ -38,6 +38,10 @@ import (
 	"github.com/liqotech/liqo/pkg/utils/network/netmonitor"
 )
 
+// StatusUpdateFunc is a function that updates the status of a resource with RouteConfiguration conditions.
+// The applyErr parameter indicates whether the RouteConfiguration was successfully applied (nil) or not (error).
+type StatusUpdateFunc func(ctx context.Context, rtcfg *networkingv1beta1.RouteConfiguration, applyErr error) error
+
 // RouteConfigurationReconciler manage Configuration lifecycle.
 //
 //nolint:revive // We usually use the name of the reconciled resource in the controller name.
@@ -50,37 +54,46 @@ type RouteConfigurationReconciler struct {
 	LabelsSets []labels.Set
 	// EnableFinalizer is used to enable the finalizer on the reconciled resources.
 	EnableFinalizer bool
+	// StatusUpdateFunc is the function to update the status of the resource.
+	StatusUpdateFunc StatusUpdateFunc
 }
 
 // newRouteConfigurationReconciler returns a new RouteConfigurationReconciler.
 func newRouteConfigurationReconciler(cl client.Client, s *runtime.Scheme, podname string,
-	er record.EventRecorder, labelsSets []labels.Set, enableFinalizer bool) (*RouteConfigurationReconciler, error) {
+	er record.EventRecorder, labelsSets []labels.Set, enableFinalizer bool, statusUpdateFunc StatusUpdateFunc) (*RouteConfigurationReconciler, error) {
 	return &RouteConfigurationReconciler{
-		PodName:         podname,
-		Client:          cl,
-		Scheme:          s,
-		EventsRecorder:  er,
-		LabelsSets:      labelsSets,
-		EnableFinalizer: enableFinalizer,
+		PodName:          podname,
+		Client:           cl,
+		Scheme:           s,
+		EventsRecorder:   er,
+		LabelsSets:       labelsSets,
+		EnableFinalizer:  enableFinalizer,
+		StatusUpdateFunc: statusUpdateFunc,
 	}, nil
 }
 
 // NewRouteConfigurationReconcilerWithFinalizer initializes a reconciler that uses finalizers on routeconfigurations.
 func NewRouteConfigurationReconcilerWithFinalizer(cl client.Client, s *runtime.Scheme, podname string,
-	er record.EventRecorder, labelsSets []labels.Set) (*RouteConfigurationReconciler, error) {
-	return newRouteConfigurationReconciler(cl, s, podname, er, labelsSets, true)
+	er record.EventRecorder, labelsSets []labels.Set, statusUpdateFunc StatusUpdateFunc) (*RouteConfigurationReconciler, error) {
+	return newRouteConfigurationReconciler(cl, s, podname, er, labelsSets, true, statusUpdateFunc)
 }
 
 // NewRouteConfigurationReconcilerWithoutFinalizer initializes a reconciler that doesn't use finalizers on routeconfigurations.
 func NewRouteConfigurationReconcilerWithoutFinalizer(cl client.Client, s *runtime.Scheme, podname string,
-	er record.EventRecorder, labelsSets []labels.Set) (*RouteConfigurationReconciler, error) {
-	return newRouteConfigurationReconciler(cl, s, podname, er, labelsSets, false)
+	er record.EventRecorder, labelsSets []labels.Set, statusUpdateFunc StatusUpdateFunc) (*RouteConfigurationReconciler, error) {
+	return newRouteConfigurationReconciler(cl, s, podname, er, labelsSets, false, statusUpdateFunc)
 }
 
 // cluster-role
 // +kubebuilder:rbac:groups=networking.liqo.io,resources=routeconfigurations,verbs=get;list;watch;update;patch
 // +kubebuilder:rbac:groups=networking.liqo.io,resources=routeconfigurations/status,verbs=get;list;watch;update;patch
 // +kubebuilder:rbac:groups=networking.liqo.io,resources=routeconfigurations/finalizers,verbs=update
+// +kubebuilder:rbac:groups=networking.liqo.io,resources=internalnodes,verbs=get;list;watch
+// +kubebuilder:rbac:groups=networking.liqo.io,resources=internalnodes/status,verbs=get;patch
+// +kubebuilder:rbac:groups=networking.liqo.io,resources=gatewayclients,verbs=get;list;watch
+// +kubebuilder:rbac:groups=networking.liqo.io,resources=gatewayclients/status,verbs=get;patch
+// +kubebuilder:rbac:groups=networking.liqo.io,resources=gatewayservers,verbs=get;list;watch
+// +kubebuilder:rbac:groups=networking.liqo.io,resources=gatewayservers/status,verbs=get;patch
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile manage RouteConfigurations, applying nftables configuration.
@@ -214,20 +227,17 @@ func forgeLabelsPredicate(labelsSets []labels.Set) (predicate.Predicate, error) 
 }
 
 func getConditionRef(rcfg *networkingv1beta1.RouteConfiguration, podname string) *networkingv1beta1.RouteConfigurationStatusCondition {
-	var conditionRef *networkingv1beta1.RouteConfigurationStatusCondition
 	for i := range rcfg.Status.Conditions {
 		if rcfg.Status.Conditions[i].Host == podname {
-			conditionRef = &rcfg.Status.Conditions[i]
-			break
+			return &rcfg.Status.Conditions[i]
 		}
 	}
-	if conditionRef == nil {
-		conditionRef = &networkingv1beta1.RouteConfigurationStatusCondition{
-			Host: podname,
-		}
-		rcfg.Status.Conditions = append(rcfg.Status.Conditions, *conditionRef)
-	}
-	return conditionRef
+	// Condition not found, create a new one
+	rcfg.Status.Conditions = append(rcfg.Status.Conditions, networkingv1beta1.RouteConfigurationStatusCondition{
+		Host: podname,
+	})
+	// Return pointer to the newly appended item
+	return &rcfg.Status.Conditions[len(rcfg.Status.Conditions)-1]
 }
 
 // UpdateStatus updates the status of the given RouteConfiguration.
@@ -237,22 +247,27 @@ func (r *RouteConfigurationReconciler) UpdateStatus(ctx context.Context, er reco
 	conditionRef.Host = podname
 	conditionRef.Type = networkingv1beta1.RouteConfigurationStatusConditionTypeApplied
 
-	oldStatus := conditionRef.Status
 	if err == nil {
 		conditionRef.Status = metav1.ConditionTrue
 	} else {
 		conditionRef.Status = metav1.ConditionFalse
 	}
 
-	if oldStatus == conditionRef.Status {
-		return nil
-	}
-
 	conditionRef.LastTransitionTime = metav1.Now()
 
 	er.Eventf(routeconfiguration, "Normal", "RouteConfigurationUpdate", "RouteConfiguration %s: %s", conditionRef.Type, conditionRef.Status)
+
+	// Update RouteConfiguration status
 	if clerr := r.Client.Status().Update(ctx, routeconfiguration); clerr != nil {
 		err = errors.Join(err, clerr)
 	}
+
+	// Update the target resource status (InternalNode or Gateway) using the injected function
+	if r.StatusUpdateFunc != nil {
+		if clerr := r.StatusUpdateFunc(ctx, routeconfiguration, err); clerr != nil {
+			err = errors.Join(err, clerr)
+		}
+	}
+
 	return err
 }

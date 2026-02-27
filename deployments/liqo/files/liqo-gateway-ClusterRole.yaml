@@ -76,8 +76,18 @@ rules:
 - apiGroups:
   - networking.liqo.io
   resources:
+  - gatewayclients
+  - gatewayservers
   - internalfabrics
   verbs:
   - get
   - list
   - watch
+- apiGroups:
+  - networking.liqo.io
+  resources:
+  - gatewayclients/status
+  - gatewayservers/status
+  verbs:
+  - get
+  - patch

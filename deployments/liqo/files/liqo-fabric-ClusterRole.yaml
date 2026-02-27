@@ -44,3 +44,20 @@ rules:
   - routeconfigurations/finalizers
   verbs:
   - update
+- apiGroups:
+  - networking.liqo.io
+  resources:
+  - gatewayclients
+  - gatewayservers
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - networking.liqo.io
+  resources:
+  - gatewayclients/status
+  - gatewayservers/status
+  verbs:
+  - get
+  - patch

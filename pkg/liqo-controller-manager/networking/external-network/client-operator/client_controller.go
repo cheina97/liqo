@@ -101,15 +101,26 @@ func (r *ClientReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res
 		return ctrl.Result{}, err
 	}
 
-	// Set GVK for Server-Side Apply (currently commented out as it may not be strictly necessary)
-	// gwClient.SetGroupVersionKind(networkingv1beta1.GatewayClientGroupVersionResource.GroupVersion().WithKind(networkingv1beta1.GatewayClientKind))
+	// Set GVK for Server-Side Apply
+	gwClientStatusPatch := &networkingv1beta1.GatewayClient{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      gwClient.Name,
+			Namespace: gwClient.Namespace,
+		},
+	}
+	gwClientStatusPatch.SetGroupVersionKind(
+		networkingv1beta1.GatewayClientGroupVersionResource.
+			GroupVersion().
+			WithKind(networkingv1beta1.GatewayClientKind),
+	)
 
 	defer func() {
+		gwClientStatusPatch.Status = gwClient.Status
 		patchOpts := []client.SubResourcePatchOption{
 			client.FieldOwner(gatewayClientStatusFieldOwner),
 			client.ForceOwnership,
 		}
-		newErr := r.Status().Patch(ctx, gwClient, client.Apply, patchOpts...)
+		newErr := r.Status().Patch(ctx, gwClientStatusPatch, client.Apply, patchOpts...)
 		if newErr != nil {
 			if err != nil {
 				klog.Errorf("Error reconciling the gateway client %q: %s", req.NamespacedName, err)

@@ -78,17 +78,17 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, fmt.Errorf("unable to get the gateway pod %q: %w", req.NamespacedName, err)
 	}
 
-	internalnode := &networkingv1beta1.InternalNode{}
-	if err = r.Get(ctx, client.ObjectKey{Name: r.Options.NodeName}, internalnode); err != nil {
-		if apierrors.IsNotFound(err) {
-			klog.Errorf("There is no internalnode %s", r.Options.NodeName)
-			return ctrl.Result{}, err
-		}
-		return ctrl.Result{}, fmt.Errorf("unable to get the internal node %q: %w", r.Options.NodeName, err)
+	// Set GVK for Server-Side Apply
+	internalNodeStatusPatch := &networkingv1beta1.InternalNode{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: r.Options.NodeName,
+		},
 	}
-
-	// Set GVK for Server-Side Apply (currently commented out as it may not be strictly necessary)
-	// internalnode.SetGroupVersionKind(networkingv1beta1.InternalNodeGroupVersionResource.GroupVersion().WithKind(networkingv1beta1.InternalNodeKind))
+	internalNodeStatusPatch.SetGroupVersionKind(
+		networkingv1beta1.InternalNodeGroupVersionResource.
+			GroupVersion().
+			WithKind(networkingv1beta1.InternalNodeKind),
+	)
 
 	klog.V(4).Infof("Reconciling gateway pod %s", req.String())
 
@@ -103,10 +103,10 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	if pod.Spec.NodeName == r.Options.NodeName {
-		internalnode.Status.NodeIP.Local = ptr.To(networkingv1beta1.IP(src))
+		internalNodeStatusPatch.Status.NodeIP.Local = ptr.To(networkingv1beta1.IP(src))
 		klog.Infof("Enforced internal node local IP %s", src)
 	} else {
-		internalnode.Status.NodeIP.Remote = ptr.To(networkingv1beta1.IP(src))
+		internalNodeStatusPatch.Status.NodeIP.Remote = ptr.To(networkingv1beta1.IP(src))
 		klog.Infof("Enforced internal node remote IP %s", src)
 	}
 
@@ -114,7 +114,7 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		client.FieldOwner(internalNodeStatusFieldOwner),
 		client.ForceOwnership,
 	}
-	return ctrl.Result{}, r.Client.Status().Patch(ctx, internalnode, client.Apply, patchOpts...)
+	return ctrl.Result{}, r.Client.Status().Patch(ctx, internalNodeStatusPatch, client.Apply, patchOpts...)
 }
 
 // SetupWithManager register the GatewayReconciler to the manager.

@@ -176,6 +176,7 @@ func run(cmd *cobra.Command, _ []string) error {
 			remapping.ForgeFirewallTargetLabelsIPMappingFabric(),
 			fabric.ForgeFirewallTargetLabelsSingleNode(options.NodeName),
 		},
+		firewall.NewInternalNodeStatusUpdateFunc(mgr.GetClient(), options.NodeName),
 	)
 	if err != nil {
 		return fmt.Errorf("unable to create firewall configuration reconciler: %w", err)
@@ -192,6 +193,7 @@ func run(cmd *cobra.Command, _ []string) error {
 		options.PodName,
 		mgr.GetEventRecorderFor("route-controller"),
 		[]labels.Set{fabric.ForgeRouteTargetLabels()},
+		route.NewInternalNodeStatusUpdateFunc(mgr.GetClient(), options.NodeName),
 	)
 	if err != nil {
 		return fmt.Errorf("unable to create route configuration reconciler: %w", err)

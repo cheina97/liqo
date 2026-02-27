@@ -64,6 +64,8 @@ func init() {
 
 // +kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;create;update;delete
 // +kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups=networking.liqo.io,resources=gatewayclients/status,verbs=get;patch
+// +kubebuilder:rbac:groups=networking.liqo.io,resources=gatewayservers/status,verbs=get;patch
 
 func main() {
 	var cmd = cobra.Command{
@@ -187,6 +189,33 @@ func run(cmd *cobra.Command, _ []string) error {
 		}
 	}
 
+	// Setup status update functions based on gateway mode
+	var routeStatusUpdateFunc route.StatusUpdateFunc
+	var firewallStatusUpdateFunc firewall.StatusUpdateFunc
+	if connoptions.GwOptions.Mode == gateway.ModeClient {
+		routeStatusUpdateFunc = route.NewGatewayClientStatusUpdateFunc(
+			mgr.GetClient(),
+			connoptions.GwOptions.Name,
+			connoptions.GwOptions.Namespace,
+		)
+		firewallStatusUpdateFunc = firewall.NewGatewayClientStatusUpdateFunc(
+			mgr.GetClient(),
+			connoptions.GwOptions.Name,
+			connoptions.GwOptions.Namespace,
+		)
+	} else {
+		routeStatusUpdateFunc = route.NewGatewayServerStatusUpdateFunc(
+			mgr.GetClient(),
+			connoptions.GwOptions.Name,
+			connoptions.GwOptions.Namespace,
+		)
+		firewallStatusUpdateFunc = firewall.NewGatewayServerStatusUpdateFunc(
+			mgr.GetClient(),
+			connoptions.GwOptions.Name,
+			connoptions.GwOptions.Namespace,
+		)
+	}
+
 	rcr, err := route.NewRouteConfigurationReconcilerWithoutFinalizer(
 		mgr.GetClient(),
 		mgr.GetScheme(),
@@ -197,6 +226,7 @@ func run(cmd *cobra.Command, _ []string) error {
 			gateway.ForgeRouteInternalTargetLabels(),
 			gateway.ForgeRouteInternalTargetLabelsByNode(connoptions.GwOptions.NodeName),
 		},
+		routeStatusUpdateFunc,
 	)
 	if err != nil {
 		return fmt.Errorf("unable to create routeconfiguration reconciler: %w", err)
@@ -218,6 +248,7 @@ func run(cmd *cobra.Command, _ []string) error {
 			remapping.ForgeFirewallTargetLabels(connoptions.GwOptions.RemoteClusterID),
 			remapping.ForgeFirewallTargetLabelsIPMappingGw(),
 		},
+		firewallStatusUpdateFunc,
 	)
 	if err != nil {
 		return fmt.Errorf("unable to create firewall configuration reconciler: %w", err)
