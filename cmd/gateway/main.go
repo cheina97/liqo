@@ -38,6 +38,7 @@ import (
 	"github.com/liqotech/liqo/pkg/conncheck"
 	"github.com/liqotech/liqo/pkg/firewall"
 	"github.com/liqotech/liqo/pkg/gateway"
+	"github.com/liqotech/liqo/pkg/gateway/collision"
 	"github.com/liqotech/liqo/pkg/gateway/concurrent"
 	"github.com/liqotech/liqo/pkg/gateway/connection"
 	"github.com/liqotech/liqo/pkg/gateway/tunnel"
@@ -127,12 +128,18 @@ func run(cmd *cobra.Command, _ []string) error {
 		}
 	}
 
-	// Deprioritize the default local routing rule, so that the rules routing
-	// the remote pod CIDR through the tunnel are evaluated first. This prevents
-	// fabric traffic directed to a remote pod whose IP collides with the
-	// gateway pod IP from being delivered locally.
+	// Deprioritize the default local routing rule so that Liqo rules are
+	// evaluated first.
 	if err = kernel.DeprioritizeLocalRule(); err != nil {
 		return fmt.Errorf("failed to deprioritize local routing rule: %w", err)
+	}
+
+	// Apply the collision rule that diverts fabric (geneve) traffic directed
+	// to the gateway pod IP through the tunnel. The rule is created
+	// immediately; the host route is retried until the remote tunnel gateway
+	// becomes reachable.
+	if err := collision.ApplyGatewayCollisionRule(cmd.Context(), connoptions.GwOptions); err != nil {
+		return fmt.Errorf("unable to apply gateway collision rule: %w", err)
 	}
 
 	// Set controller-runtime logger.

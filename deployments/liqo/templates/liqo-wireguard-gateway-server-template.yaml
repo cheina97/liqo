@@ -88,6 +88,7 @@ spec:
                 - --remote-cluster-id={{"{{ .ClusterID }}"}}
                 - --node-name={{"$(NODE_NAME)"}}
                 - --pod-name={{"$(POD_NAME)"}}
+                - --pod-ip={{"$(POD_IP)"}}
                 - --gateway-uid={{"{{ .GatewayUID }}"}}
                 - --mode=server
                 - --container-name=gateway
@@ -147,6 +148,10 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.name
+                - name: POD_IP
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: status.podIP
                 securityContext:
                   privileged: true
                   capabilities:

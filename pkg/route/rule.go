@@ -149,7 +149,7 @@ func AddRule(rule *networkingv1beta1.Rule, tableID uint32) error {
 		newrule.Mark = uint32(*rule.FwMark)
 	}
 
-	if rule.Priority != nil && *rule.Priority > 0 {
+	if rule.Priority != nil && *rule.Priority >= 0 {
 		newrule.Priority = *rule.Priority
 	}
 

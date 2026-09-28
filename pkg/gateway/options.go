@@ -28,6 +28,7 @@ type Options struct {
 	RemoteClusterID string
 	NodeName        string
 	PodName         string
+	PodIP           string
 	ContainerName   string
 
 	GatewayUID string

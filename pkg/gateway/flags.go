@@ -39,6 +39,8 @@ const (
 	FlagNameNodeName FlagName = "node-name"
 	// FlagNamePodName is the name of the pod.
 	FlagNamePodName FlagName = "pod-name"
+	// FlagNamePodIP is the IP address of the pod.
+	FlagNamePodIP FlagName = "pod-ip"
 	// FlagContainerName is the name of the container.
 	FlagContainerName FlagName = "container-name"
 
@@ -110,6 +112,7 @@ func InitFlags(flagset *pflag.FlagSet, opts *Options) {
 	flagset.StringVar(&opts.RemoteClusterID, FlagNameRemoteClusterID.String(), "", "ClusterID of the remote cluster")
 	flagset.StringVar(&opts.NodeName, FlagNameNodeName.String(), "", "Node name")
 	flagset.StringVar(&opts.PodName, FlagNamePodName.String(), "", "Pod name")
+	flagset.StringVar(&opts.PodIP, FlagNamePodIP.String(), "", "Pod IP")
 	flagset.StringVar(&opts.ContainerName, FlagContainerName.String(), "", "Container name")
 
 	flagset.StringVar(&opts.GatewayUID, FlagNameGatewayUID.String(), "", "Parent gateway resource UID")
